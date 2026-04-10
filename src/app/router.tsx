@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
+import { AppShell } from './AppShell'
 import { TransactionListPage } from '@/features/transactions/ui/TransactionListPage'
 import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 
@@ -10,28 +11,33 @@ const SettingsPage = lazy(() => import('@/features/settings').then((m) => ({ def
 export const router = createBrowserRouter(
   [
     {
-      path: '/',
-      element: <TransactionListPage />,
-    },
-    {
-      path: '/reports',
-      element: (
-        <Suspense fallback={<PageSkeleton />}>
-          <ReportsPage />
-        </Suspense>
-      ),
-    },
-    {
-      path: '/settings',
-      element: (
-        <Suspense fallback={<PageSkeleton />}>
-          <SettingsPage />
-        </Suspense>
-      ),
-    },
-    {
-      path: '*',
-      element: <TransactionListPage />,
+      element: <AppShell />,
+      children: [
+        {
+          path: '/',
+          element: <TransactionListPage />,
+        },
+        {
+          path: '/reports',
+          element: (
+            <Suspense fallback={<PageSkeleton />}>
+              <ReportsPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: '/settings',
+          element: (
+            <Suspense fallback={<PageSkeleton />}>
+              <SettingsPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: '*',
+          element: <TransactionListPage />,
+        },
+      ],
     },
   ],
   {

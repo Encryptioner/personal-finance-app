@@ -6,7 +6,7 @@ import { exportJson } from '@/features/transactions/api/json-exporter'
 import { Button } from '@/components/ui/button'
 
 export function DataSection() {
-  const { signOut } = useAuthStore()
+  const authStore = useAuthStore()
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExportJson = async () => {
@@ -36,7 +36,7 @@ export function DataSection() {
   }
 
   const handleSignOut = async () => {
-    await signOut()
+    await authStore.signOut()
   }
 
   return (
@@ -49,7 +49,7 @@ export function DataSection() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportJson}
+              onClick={() => void handleExportJson()}
               disabled={isExporting}
             >
               Export JSON
@@ -57,7 +57,7 @@ export function DataSection() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportCsv}
+              onClick={() => void handleExportCsv()}
               disabled={isExporting}
             >
               Export CSV
@@ -68,7 +68,7 @@ export function DataSection() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={handleSignOut}
+            onClick={() => void handleSignOut()}
           >
             Sign Out
           </Button>

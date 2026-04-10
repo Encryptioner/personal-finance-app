@@ -39,7 +39,7 @@ export function LocaleSection() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="currency">Currency</Label>
-          <Select value={settings.currency} onValueChange={updateCurrency}>
+          <Select value={settings.currency} onValueChange={(value) => void updateCurrency(value)}>
             <SelectTrigger id="currency">
               <SelectValue />
             </SelectTrigger>
@@ -54,7 +54,7 @@ export function LocaleSection() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="locale">Locale</Label>
-          <Select value={settings.locale} onValueChange={updateLocale}>
+          <Select value={settings.locale} onValueChange={(value) => void updateLocale(value)}>
             <SelectTrigger id="locale">
               <SelectValue />
             </SelectTrigger>

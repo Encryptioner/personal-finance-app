@@ -6,16 +6,12 @@ import type { Theme } from '@/shared/types/settings'
 export function ThemeSection() {
   const { settings, updateTheme } = useSettingsStore()
 
-  const handleThemeChange = async (value: string) => {
-    await updateTheme(value as Theme)
-  }
-
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Theme</h2>
       <div className="space-y-2">
         <Label htmlFor="theme">Color scheme</Label>
-        <Select value={settings.theme} onValueChange={handleThemeChange}>
+        <Select value={settings.theme} onValueChange={(value) => void updateTheme(value as Theme)}>
           <SelectTrigger id="theme">
             <SelectValue />
           </SelectTrigger>
