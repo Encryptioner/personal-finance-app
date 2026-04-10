@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand colors — spec §8.1 */
+  --color-primary: #2563eb;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #64748b;
+  --color-secondary-foreground: #ffffff;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-border: #e2e8f0;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+
+  /* Income / Expense semantic colors */
+  --color-income: #16a34a;
+  --color-expense: #dc2626;
+  --color-transfer: #7c3aed;
+
+  /* Radius */
+  --radius: 0.5rem;
+}
+
+/* Dark mode — spec §8.2 */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: #0f172a;
+    --color-foreground: #f8fafc;
+    --color-muted: #1e293b;
+    --color-muted-foreground: #94a3b8;
+    --color-border: #334155;
+    --color-card: #1e293b;
+    --color-card-foreground: #f8fafc;
+  }
+}

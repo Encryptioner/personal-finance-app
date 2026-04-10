@@ -94,17 +94,15 @@ personal-finance-app/
 ├── .editorconfig
 ├── .prettierrc.json
 ├── .prettierignore
-├── eslint.config.js                 # flat config, react + a11y plugins
-├── index.html                       # Vite entry, <div id="root">
+├── eslint.config.js                 # flat config, react + a11y + prettier plugins
+├── index.html                       # Vite entry, <div id="root">, CSP meta tag
 ├── package.json                     # packageManager: pnpm@9.x
 ├── pnpm-lock.yaml                   # generated
-├── postcss.config.cjs               # tailwind + autoprefixer
-├── tailwind.config.ts               # v4 is CSS-first but keep for intellisense
 ├── tsconfig.json                    # strict, paths @/*
 ├── tsconfig.node.json               # for vite.config.ts
 ├── vite.config.ts                   # base, alias, plugins, test config
-├── vitest.config.ts                 # or merged into vite.config.ts
-├── playwright.config.ts
+├── vitest.config.ts
+├── playwright.config.ts             # baseURL: http://localhost:5173/personal-finance-app
 ├── src/
 │   ├── main.tsx                     # React 19 createRoot
 │   ├── App.tsx                      # placeholder Hello PFA
@@ -120,28 +118,47 @@ personal-finance-app/
 
 ### Tasks (ordered)
 
-1. `pnpm init` → set `"packageManager": "pnpm@9.15.0"` and `"type": "module"`, `"engines": { "node": ">=22" }`.
+0. `git init && git checkout -b main` — must exist before any commits. [M5]
+
+1. `pnpm init` → set `"packageManager": "pnpm@9.x"` (use current installed version) and `"type": "module"`, `"engines": { "node": ">=22" }`.
 2. Install runtime deps: `react@19 react-dom@19`.
-3. Install dev deps in groups (separate commits or one commit — your call):
+3. Install dev deps:
    - Build: `vite@6 @vitejs/plugin-react typescript@5 vite-plugin-pwa workbox-window`
-   - Lint/format: `eslint @eslint/js typescript-eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-jsx-a11y prettier`
+   - Lint/format: `eslint @eslint/js typescript-eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-jsx-a11y prettier eslint-config-prettier` — **`eslint-config-prettier` required** to prevent ESLint/Prettier conflicts [C2]
    - Test: `vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom @vitest/coverage-v8`
    - E2E: `@playwright/test`
-   - Style: `tailwindcss@next postcss autoprefixer @tailwindcss/postcss`
+   - Style: `tailwindcss @tailwindcss/vite` — **no PostCSS, no autoprefixer, no tailwind.config** [C1]
+   - Bundle analysis: `rollup-plugin-visualizer` [m3]
 4. Write `tsconfig.json` with `strict: true`, `noUncheckedIndexedAccess: true`, `paths: { "@/*": ["./src/*"] }`, `moduleResolution: "bundler"`, `jsx: "react-jsx"`.
-5. Write `vite.config.ts` with:
+5. Write `vite.config.ts`:
    - `base: '/personal-finance-app/'` (spec §12.1)
    - `resolve.alias: { '@': path.resolve(__dirname, './src') }`
-   - `plugins: [react(), VitePWA({ injectRegister: 'auto', registerType: 'prompt' })]` — just scaffolded, Workbox config comes in Phase 8
+   - `plugins: [react(), tailwindcss(), VitePWA({ injectRegister: 'auto', registerType: 'prompt' })]`
+     — `tailwindcss` imported from `@tailwindcss/vite`. No PostCSS config needed. [C1]
    - `test: { environment: 'jsdom', setupFiles: ['./src/test/setup.ts'] }`
-6. Write `src/index.css` with Tailwind v4 `@import 'tailwindcss'` and an `@theme` block with CSS custom properties for color tokens (spec §8.1).
-7. Write `src/App.tsx` returning `<h1 className="text-2xl font-bold">Personal Finance App</h1>` — just enough for the smoke test.
-8. 🔴 Write `src/__tests__/smoke.test.ts`: `expect(1 + 1).toBe(2)`. Run `pnpm test` — should pass.
-9. 🔴 Write `e2e/smoke.spec.ts`: navigate to `/`, expect `getByRole('heading', { name: /personal finance/i })`. Run `pnpm exec playwright test` — should pass against `pnpm dev`.
-10. Write `.github/workflows/ci.yml`: checkout → setup pnpm → install → lint → typecheck → test → build. Matrix on `node: [22]`.
-11. Write `.github/workflows/deploy.yml`: skeleton that uploads `dist/` as Pages artifact (wire up base path later; full deployment is Phase 9).
-12. Add `.gitignore` (node_modules, dist, coverage, .env, .DS_Store, playwright-report).
-13. Add `README.md` with `pnpm install && pnpm dev && pnpm test` instructions.
+   - Bundle analysis: add `visualizer({ open: false })` when `process.env.VISUALIZE === 'true'` [m3]
+6. Write `src/index.css` with `@import "tailwindcss"` and `@theme { ... }` block for color tokens (spec §8.1).
+7. Write `index.html` with CSP meta tag (spec §9.4) [M4]:
+   ```html
+   <meta http-equiv="Content-Security-Policy" content="
+     default-src 'self';
+     script-src 'self' https://accounts.google.com;
+     connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com;
+     frame-src https://accounts.google.com;
+     img-src 'self' data: https://lh3.googleusercontent.com;
+     style-src 'self' 'unsafe-inline';
+   ">
+   ```
+   Note: `'unsafe-inline'` for styles required by Tailwind v4/shadcn CSS variable injection. Revisit in Phase 10 if removable.
+8. Write `src/App.tsx` returning `<h1 className="text-2xl font-bold">Personal Finance App</h1>`.
+9. Write `playwright.config.ts` with `use: { baseURL: 'http://localhost:5173/personal-finance-app' }` — all `page.goto('/')` calls resolve to the correct base. [m2]
+10. Write `eslint.config.js` extending `...prettier` as the **last** element so it disables conflicting style rules. [C2]
+11. 🔴 Write `src/__tests__/smoke.test.ts`: `expect(1 + 1).toBe(2)`. Run `pnpm test` — should pass.
+12. 🔴 Write `e2e/smoke.spec.ts`: `page.goto('/')` (resolves to base URL), expect heading. Run `pnpm exec playwright test` against `pnpm dev`.
+13. Write `.github/workflows/ci.yml`: checkout → setup pnpm → install → lint → typecheck → test → build. Matrix on `node: [22]`.
+14. Write `.github/workflows/deploy.yml`: skeleton (full deployment Phase 9).
+15. Add `.gitignore`, `README.md`.
+16. Initial commit: `chore(init): scaffold pfa project`. Push to GitHub, enable Pages in repository settings.
 
 ### Acceptance
 - [ ] `pnpm install` runs clean
@@ -228,7 +245,7 @@ src/
    export interface Transaction {
      id: string;             // UUID v7
      type: TransactionType;
-     amount: number;         // in smallest currency unit (cents) — no floats!
+     amount: number;         // integer minor units — no floats! (USD: cents ×100; JPY: ×1; KWD: fils ×1000). Use getDecimalPlaces(currency) to scale.
      currency: string;       // ISO 4217, e.g. 'USD', 'BDT'
      date: string;           // ISO 8601 YYYY-MM-DD
      category: string;
@@ -258,10 +275,17 @@ src/
    - 🟢 Implement using `uuid` package's `v7()`.
    - 🔵 Refactor: wrap so we can stub in tests.
 
-5. `src/shared/lib/money.ts` — `formatCurrency(minorUnits, currency, locale)` and `parseMoney(input)`.
-   - 🔴 Tests: USD $12.34 formats correctly, BDT ৳1,234 formats correctly, parseMoney("$12.34") → 1234, parseMoney("12,34 €") → 1234, parseMoney("abc") → error result.
-   - 🟢 Implement with `Intl.NumberFormat`. `parseMoney` strips non-digits/separators heuristically.
-   - 🔵 Refactor: extract separator detection helper if the regex gets ugly.
+5. `src/shared/lib/money.ts` — `getDecimalPlaces(currency)`, `formatCurrency(minorUnits, currency, locale)`, `parseMoney(input, currency)`. [M1]
+   - `getDecimalPlaces(currency: string): number` — lookup table: JPY/KRW/VND/etc. → 0, KWD/BHD/OMR → 3, default → 2. All money operations use this; never assume "÷100".
+   - 🔴 Tests:
+     - `formatCurrency(1234, 'USD')` → `"$12.34"`
+     - `formatCurrency(1234, 'JPY')` → `"¥1,234"` (no division — JPY has 0 decimal places)
+     - `formatCurrency(12345, 'KWD')` → `"KD 12.345"` (3 decimal places)
+     - `parseMoney("$12.34", "USD")` → `1234`
+     - `parseMoney("¥1234", "JPY")` → `1234` (not 123400)
+     - `parseMoney("abc", "USD")` → error result
+   - 🟢 Implement with `Intl.NumberFormat`. Use `getDecimalPlaces` to scale correctly.
+   - 🔵 Refactor: extract separator detection helper if regex gets ugly.
 
 6. `src/shared/lib/date.ts` — `toISODate(Date)`, `parseDate(string, hint?)`, `formatDate(iso, locale)`.
    - 🔴 Tests: `toISODate(new Date('2026-04-10'))` → `'2026-04-10'`, `parseDate('04/10/2026', 'US')` → `'2026-04-10'`, `parseDate('10/04/2026', 'EU')` → `'2026-04-10'`, `parseDate('2026-04-10')` → `'2026-04-10'`.
@@ -358,7 +382,8 @@ src/features/transactions/
 ### New dependencies
 - `zustand@5` — state management
 - `react-hook-form@7` + `@hookform/resolvers` — forms
-- `shadcn` CLI — install a few primitives (`button`, `dialog`, `input`, `select`, `form`, `table`, `toast`)
+- `react-router-dom@7` — **committed, not optional**. 15KB gzipped, within budget [C5]
+- `shadcn` CLI — primitives via init + add
 
 ### Tasks (ordered)
 
@@ -401,12 +426,26 @@ src/features/transactions/
 
 **UI — TEST-ALONGSIDE**
 
-12. Install shadcn primitives: `pnpm dlx shadcn@latest add button dialog input select form table toast`.
-13. `TransactionListPage.tsx` — container that uses the store, shows `FilterBar`, `TransactionListTable` (built with shadcn `<Table>`), `EmptyState` when list is empty, and a "+ Add" FAB.
-14. `TransactionForm.tsx` — RHF + Zod resolver pointing at `transaction-schema`. All form errors come from Zod messages (consistent with constants).
-15. `TransactionListPage.test.tsx` — happy path: render page, click Add, fill form, submit, see row appear.
-16. `TransactionForm.test.tsx` — validation errors render via `aria-describedby` for a11y.
-17. Wire routing: add `react-router-dom@7` (or minimal hand-rolled routing — decide based on bundle budget; router adds ~15KB gzipped).
+12. Init shadcn **before** adding components [C3]:
+    ```bash
+    pnpm dlx shadcn@latest init
+    # choose: style=new-york, base color=neutral, CSS variables=yes, TypeScript=yes
+    ```
+    Commit the generated `components.json`. shadcn detects Tailwind v4 automatically.
+13. Add shadcn primitives: `pnpm dlx shadcn@latest add button dialog input select form table toast`.
+14. Wire routing with `react-router-dom@7` [C5]:
+    ```tsx
+    // src/app/router.tsx
+    import { createBrowserRouter } from 'react-router-dom';
+    export const router = createBrowserRouter(routes, {
+      basename: import.meta.env.BASE_URL,  // '/personal-finance-app/' in prod, '/' in test
+    });
+    ```
+    `import.meta.env.BASE_URL` = Vite's `base` config. Works in dev + prod without hardcoding.
+15. `TransactionListPage.tsx` — container: `FilterBar`, `TransactionListTable`, `EmptyState`, "+ Add" FAB.
+16. `TransactionForm.tsx` — RHF + Zod resolver → `transaction-schema`. Errors from Zod/constants.
+17. `TransactionListPage.test.tsx` — happy path RTL test.
+18. `TransactionForm.test.tsx` — validation errors render via `aria-describedby`.
 
 **E2E gate**
 
@@ -496,7 +535,7 @@ src/features/transactions/
    - Headers in different order → still maps correctly
    - Headers `Transaction Date, Debit, Credit, Memo` → date → Transaction Date, description → Memo, amount derived from Debit (negative) / Credit (positive)
    - Unknown headers → user must manually map
-5. 🟢 Implement with a synonym dictionary + Levenshtein distance for fuzzy match.
+5. 🟢 Implement with synonym dictionary only (no Levenshtein — over-engineering per "simple over clever"). Unknown headers → user maps manually. Add fuzzy match later if real-world CSVs prove the dictionary insufficient.
 
 **Date format detection — STRICT TDD**
 
@@ -549,7 +588,7 @@ JSON. Parser coverage 95%+.
 ## 6. Phase 4 — Auth Slice (GIS Token Client)
 
 ### Goal
-User can sign in with Google, receive a Drive access token, and the app knows when to silently renew it. **No actual Drive calls yet** — that's Phase 5.
+Sign-in is **optional**. App opens directly to the Dashboard without any auth gate. A persistent "sign in to sync" prompt appears for unsigned users. Once signed in, the session persists via GIS silent re-auth on every app load — user never needs to sign in again unless they explicitly sign out. **No actual Drive calls yet** — that's Phase 5.
 
 ### Depends on
 Phase 1 (for settings store).
@@ -619,16 +658,19 @@ src/features/auth/
 9. `auth-store.ts` — Zustand with:
    - `status: 'idle' | 'signing-in' | 'authenticated' | 'error'`
    - `profile: { email, name, picture } | null`
-   - `signIn()` — kicks off GIS flow, sets token on callback, fetches `/oauth2/v3/userinfo` for profile
+   - `signIn()` — kicks off GIS flow with UI popup (`prompt: 'consent'`), sets token on callback, fetches profile
+   - `silentSignIn()` — attempts GIS silent re-auth (`prompt: ''`) on app load; if succeeds, sets token; if fails, stays `'idle'` (no error shown to user — normal for first visit or signed-out state)
    - `signOut()` — revokes token, clears store
    - `ensureFreshToken()` — called before any Drive API call; if `expiring`, triggers silent renew
 10. Tests: mocks `gis-client`, asserts state transitions and token storage calls.
 
-**UI**
+**UI** (no login gate — app opens to Dashboard)
 
-11. `SignInPage.tsx` — centered card with a primary "Sign in with Google" button. Shows loading state during `signing-in`.
-12. `ProfileMenu.tsx` — avatar button in top-right; dropdown with email, "Sign out".
-13. Component tests with RTL.
+11. Remove any login-gate route. Dashboard is the `/` route, always accessible.
+12. `SignInBanner.tsx` — soft prompt in header for unauthenticated users: *"Sign in with Google to sync across devices"* + dismiss button. Shown only when `status === 'idle'`.
+13. `SignInButton.tsx` — standalone sign-in button used in banner and Settings page.
+14. `ProfileMenu.tsx` — avatar button when authenticated; dropdown with email, "Sign out".
+15. Component tests with RTL.
 
 **Env wiring**
 
@@ -651,21 +693,23 @@ src/features/auth/
     - Expect redirect to Dashboard
 
 ### Acceptance (spec §15 Auth)
+- [ ] App opens directly to Dashboard without any sign-in prompt
+- [ ] Unsigned users see a dismissible "Sign in to sync" banner in header
 - [ ] User can sign in with Google (against real consent in dev)
 - [ ] Scope requested is exactly `drive.appdata` — no more, no less
-- [ ] Access token lives in memory + sessionStorage, never localStorage
+- [ ] Access token lives in memory only, never localStorage
+- [ ] Silent re-auth on app load restores signed-in state without any UI
 - [ ] Token state machine 100% coverage
 - [ ] Silent renew fires automatically in the "expiring" state
 - [ ] Sign out revokes the token and clears all state
 
 ### Checkpoint commit
 ```
-feat(auth): add gis token client with silent renewal and drive.appdata scope
+feat(auth): optional sign-in with gis silent re-auth and drive.appdata scope
 
-Implements the implicit OAuth flow per spec §4.1 using Google Identity
-Services. Access tokens never hit localStorage. Silent renewal fires when
-the token enters the "expiring" window. Token state machine built strictly
-test-first.
+App no longer requires sign-in to use. GIS silent re-auth on load restores
+sessions persistently. Tokens in memory only. Token state machine built
+strictly test-first. Unsigned users see dismissible sync prompt in header.
 ```
 
 ---
@@ -709,7 +753,7 @@ src/features/sync/
 │   ├── SyncStatusBadge.tsx               # shows idle/syncing/error
 │   └── SyncErrorDialog.tsx               # "Sync failed — retry / details"
 └── lib/
-    └── device-id.ts                      # localStorage-backed device identifier
+    └── device-id.ts                      # localStorage-backed device identifier — localStorage is CORRECT here (not a security credential; must persist across sessions for stable device identity)
 ```
 
 ### New dependencies
@@ -777,51 +821,98 @@ src/features/sync/
 **File manager — INTEGRATION-FIRST**
 
 10. `drive-file-manager.ts`:
-    - `findOrCreateTransactionsFile()` — lists `appDataFolder` for `name='transactions.json'`, returns fileId (or creates with empty `{ schemaVersion: 1, devices: [], transactions: [] }`)
+    - `findOrCreateTransactionsFile()` [M2]:
+      - List `appDataFolder` for `name='transactions.json'`
+      - If 0 results → create with empty `{ schemaVersion: 1, devices: [], transactions: [] }`
+      - If 1 result → return that fileId
+      - **If > 1 result (race condition — two devices did first-sync simultaneously):** merge all files' transaction arrays via `mergeTransactions()`, write merged result to the first file, delete the rest, return first fileId. Add this branch to tests.
     - `readTransactionsFile()` → `{ body, etag }`
+      - Note: Google Drive ETags are quoted strings (`"abc123"` not `abc123`). Pass verbatim to `If-Match`.
     - `writeTransactionsFile(body, etag)` → new etag, 412-safe
-11. Test against MSW with realistic responses.
+11. Test against MSW with realistic responses. Include a test for the multiple-files-found branch.
 
 **Sync service — ORCHESTRATOR**
 
-12. `sync-service.ts`:
+12. `sync-service.ts` [M3, N1]:
     ```ts
-    export async function runSync(): Promise<SyncResult> {
+    const CURRENT_SCHEMA_VERSION = 1;  // from shared/config/constants.ts
+
+    export async function runSync(retryCount = 0): Promise<SyncResult> {
+      if (retryCount >= 5) throw new MaxRetriesError('Sync failed after 5 attempts');
+
       const local = await transactionRepository.listAll();  // includes tombstones
       const { body: remote, etag } = await driveFileManager.readTransactionsFile();
+
+      // Schema guard — don't corrupt a newer app's file [M3]
+      if (remote.schemaVersion > CURRENT_SCHEMA_VERSION) {
+        throw new UnsupportedSchemaError(
+          `Remote schema v${remote.schemaVersion} — update this app to sync`
+        );
+      }
+
       const merged = mergeTransactions(local, remote.transactions);
       const nextBody = { ...remote, transactions: merged, lastModified: nowIso(), devices: trackDevice(remote.devices) };
       try {
-        const newEtag = await driveFileManager.writeTransactionsFile(nextBody, etag);
+        await driveFileManager.writeTransactionsFile(nextBody, etag);
         await transactionRepository.bulkReplace(merged);
         broadcastChannel.postMessage({ type: 'sync-complete', at: nowIso() });
         return { ok: true, mergedCount: merged.length };
       } catch (e) {
-        if (e instanceof ConflictError) return runSync();  // retry with fresh etag, max 5 attempts
+        if (e instanceof ConflictError) {
+          // 412: re-read remote, re-merge, retry — single retry counter [N1]
+          await sleep(exponentialBackoff(retryCount));
+          return runSync(retryCount + 1);
+        }
         throw e;
       }
     }
     ```
-13. Wrap with retry loop (max 5, exponential backoff). After 5 failures, push to `sync-store.error` and surface in UI.
+    After max retries or non-412 error: push error to `sync-store` and surface in UI via `SyncErrorDialog`.
 14. Integration test: mocked drive-client + real merge function + real repository (fake-indexeddb).
 
 **Multi-tab coordination**
 
 15. `broadcast-channel.ts` — wraps `new BroadcastChannel('pfa-sync')`. Messages:
-    - `{ type: 'sync-requested', tabId }`
     - `{ type: 'sync-complete', at }`
     - `{ type: 'transaction-changed', txId }`
 16. On receiving `sync-complete`, other tabs call `transactionStore.reload()` (refresh UI from DB).
-17. Debounced sync: each tab debounces its own sync call by 500ms. Tolerate the rare duplicate fetch — simpler than leader election (spec §4.4).
+17. Debounced sync: each tab debounces its own sync call by 1000ms. Tolerate the rare duplicate fetch — simpler than leader election (spec §4.4).
 
-**Wire into transaction store**
+**Wire auto-sync triggers (spec §4.4)**
 
-18. Subscribe `transactionStore` events → enqueue sync queue entry → debounced `runSync()`.
+18. In `sync-service.ts`, export `initAutoSync()` — called once on app boot when user is authenticated:
+    ```ts
+    export function initAutoSync() {
+      // Trigger 1: mutation-driven (debounced 1s)
+      transactionStore.subscribe(() => {
+        if (authStore.isAuthenticated()) debouncedSync();
+      });
+
+      // Trigger 2: online event — drains queue immediately
+      window.addEventListener('online', () => {
+        if (authStore.isAuthenticated()) void runSync();
+      });
+
+      // Trigger 3: visibility change — pull-check only (push only if pending)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && authStore.isAuthenticated()) {
+          void runSync();
+        }
+      });
+    }
+    ```
+    Called from `auth-store.ts` after successful sign-in (and after silent re-auth on load).
+19. `SyncButton.tsx` — always visible in header (even when not signed in, but disabled with tooltip "Sign in to sync"). Shows:
+    - ✓ green "Synced" + last sync time
+    - ⏳ animated "Syncing…"
+    - 🔴 "Sync failed" + retry action
+    - ⏸ grey "Offline" (when `!navigator.onLine`)
+    - ⏳ badge count of pending unsynced changes
 
 **UI**
 
-19. `SyncStatusBadge.tsx` — small pill in header: green "synced", blue pulsing "syncing", red "error".
-20. `SyncErrorDialog.tsx` — on error, shows message + "Retry" + "Copy error details" (for bug reports — per spec §9.5, no external telemetry).
+20. `SyncButton.tsx` replaces the old `SyncStatusBadge` — it IS the button AND the status indicator.
+21. `SyncErrorDialog.tsx` — on error, shows message + "Retry" + "Copy error details" (for bug reports — per spec §9.5, no external telemetry).
 
 **E2E gate**
 
@@ -915,7 +1006,7 @@ src/features/reports/
 **UI**
 
 6. Install Recharts: `pnpm add recharts`. Verify bundle impact with `pnpm build && vite-bundle-visualizer`.
-7. `ReportsPage.tsx` — lazy-loaded via `React.lazy(() => import('@/features/reports/ui/ReportsPage'))` at the route level.
+7. `ReportsPage.tsx` — lazy-loaded via `React.lazy(() => import('@/features/reports/ui/ReportsPage'))` at the route level. **Must wrap in `<Suspense fallback={<PageSkeleton />}>`** — React 19 throws without a Suspense boundary. Create `shared/ui/PageSkeleton.tsx` (simple skeleton loader). [m1]
 8. `CategoryDonut.tsx` — reads from store, uses `byCategory`, passes to Recharts.
 9. `MonthlyTrendChart.tsx`.
 10. `StatsGrid.tsx` — simple tiles.
@@ -1057,7 +1148,20 @@ e2e/
    ```
 2. Generate icons (use any PWA icon generator; commit the output).
 3. `src/sw-registration.ts` — shows a toast when a new SW is waiting, offering "Reload to update".
-4. Background Sync for the sync queue: when the SW receives a `sync` event, flush the sync-queue. Use Workbox's `BackgroundSyncPlugin` (fallback: app-level retry on `online` event, which is what we do now).
+4. Online reconnect sync [C4]:
+   **Primary approach:** In the app root effect, add:
+   ```ts
+   window.addEventListener('online', () => syncService.runSync());
+   ```
+   This is sufficient — when the tab comes back online, the sync queue drains. No Service Worker involvement needed.
+
+   **Why NOT Workbox BackgroundSyncPlugin:** That plugin replays failed `fetch()` requests (network-level replay). Our sync logic is `runSync()` — a complex function in the main thread that reads IndexedDB, calls `mergeTransactions()`, writes back, and calls `broadcastChannel.postMessage()`. The SW has no access to the app's module graph and cannot run this logic. BackgroundSyncPlugin solves a different problem.
+
+   The `online` event also fires when:
+   - The tab was offline and regains connectivity (primary case)
+   - The app is reopened after being offline (via the sync-on-load path in `auth-store`)
+   
+   If the tab was **closed** while offline: the sync queue persists in IndexedDB. Next time the app loads, run `syncService.runOnLoad()` which checks for pending queue entries and drains them.
 5. `e2e/offline.spec.ts`:
    - Visit `/` → wait for install
    - `context.setOffline(true)`
@@ -1134,7 +1238,7 @@ README.md
 3. Add `VITE_GOOGLE_CLIENT_ID` to repo secrets.
 4. Update Google Cloud OAuth client's Authorized JavaScript origins to include `https://encryptioner.github.io`.
 5. Verify the deployed URL loads, deep links work, sign-in works, sync works.
-6. Optional: Lighthouse CI workflow that fails the PR if scores < 95/95/95/100 (spec §11).
+6. **Required** (not optional): Lighthouse CI workflow that fails the PR if scores < 95/95/95/100 — spec §15 acceptance criteria lists these as "MVP Done When" conditions. Run against `pnpm preview` (local prod build) in CI, not the live URL.
 7. Update README with the live URL and dev setup.
 
 ### Acceptance (spec §15 Deployment)
@@ -1286,3 +1390,4 @@ If any of these creep into the MVP during implementation, **stop and escalate**.
 |---------|------|--------|--------|
 | 1.0 | 2026-04-04 | Initial plan | Claude Code |
 | 2.0 | 2026-04-10 | Full rewrite aligned with spec v2.0. Feature-sliced phase order: foundations → kernel → transactions (local) → CSV → auth → sync → reports → settings → PWA → deploy → a11y. Pragmatic TDD at boundaries with strict red-green-refactor flagged per-file for pure logic. Added risk log, coverage thresholds, bundle budget enforcement, cross-phase concerns, and explicit out-of-scope list. | Claude Code |
+| 2.1 | 2026-04-10 | Post-grill fixes: C1 Tailwind v4 tooling (`@tailwindcss/vite`, remove PostCSS); C2 `eslint-config-prettier` added; C3 `shadcn init` before `add`; C4 Background Sync replaced with `window.addEventListener('online')`; C5 React Router `basename={import.meta.env.BASE_URL}` for subpath deploy; M1 `getDecimalPlaces(currency)` for JPY/KWD/etc.; M2 duplicate Drive file merge in `findOrCreateTransactionsFile`; M3 `schemaVersion` guard before merge; M4 CSP meta tag added to Phase 0; M5 `git init` added to Phase 0; m1 Suspense boundary for React.lazy; m2 Playwright `baseURL` config; m3 `rollup-plugin-visualizer` in deps; N1 single `retryCount` param for `runSync`; N2 absolute userinfo URL; N3 Lighthouse CI required not optional; N4 Levenshtein removed from CSV column mapper. | Claude Code |

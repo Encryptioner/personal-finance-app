@@ -93,12 +93,13 @@ Summary of architectural fixes from the 2026-04-10 grill log (`ai/PFA-1/requirem
   5. Changes sync across devices within seconds
 
 ### Persona 3: "Jordan" — Offline-Heavy Commuter
-- **Needs:** Works offline on metro, syncs when connected
+- **Needs:** Works offline on metro, syncs when connected. Doesn't want to think about sync.
 - **Journey:**
-  1. Uses app offline on daily commute (no internet)
-  2. Adds 2–3 transactions; sees ⏳ sync-pending badge
-  3. Reaches office Wi-Fi → auto-sync in background
-  4. Sees ✓ synced badge; changes visible on desktop
+  1. Opens app on phone — no internet, no sign-in needed → goes straight to Dashboard
+  2. Adds 2–3 transactions offline; sees ⏳ sync-pending badge in header
+  3. Reaches office Wi-Fi → app detects `online` event → auto-syncs silently
+  4. Sees ✓ synced badge; changes visible on desktop automatically
+  5. On desktop: silent GIS re-auth on load → already signed in → sees Jordan's transactions
 
 ### Persona 4: "Priya" — Dark Mode & A11y
 - **Needs:** Dark theme, keyboard-only navigation (wrist pain), high contrast
@@ -113,36 +114,48 @@ Summary of architectural fixes from the 2026-04-10 grill log (`ai/PFA-1/requirem
 
 ### 4.1 Authentication & Google Sign-In
 
-**Goal:** One tap, one popup, no config.
+**Goal:** Sign-in is optional. The app works fully offline without any Google account. Sign-in unlocks Drive sync across devices.
+
+**Two modes:**
+
+| Mode | Sign-in | Data stored | Sync |
+|------|---------|-------------|------|
+| **Local-only** | None | IndexedDB only | No |
+| **Synced** | Google | IndexedDB + Drive `appDataFolder` | Auto when online |
+
+**First-time experience:**
+1. User opens app → lands directly on Dashboard (no login gate)
+2. Soft prompt in header: *"Sign in with Google to sync across devices"* (dismissible)
+3. User can add transactions immediately without signing in
 
 **OAuth Flow (Google Identity Services implicit token flow):**
 
-- Library: `@react-oauth/google` but using the **`useGoogleLogin` hook** (not `<GoogleLogin>` button), configured for the **token flow**:
+- Library: GIS token client (direct — not `@react-oauth/google`), configured for the **token flow**:
   ```ts
-  const login = useGoogleLogin({
-    flow: 'implicit',
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.appdata',
-    onSuccess: (resp) => { /* resp.access_token, resp.expires_in */ },
-    onError: (err) => { /* handle */ },
+    prompt: '',           // '' = silent if already consented; 'consent' = force UI
+    callback: (resp) => { /* resp.access_token, resp.expires_in */ },
   });
   ```
-- **Scope:** `drive.appdata` — grants access ONLY to a hidden app-private folder (`appDataFolder`) that's invisible in the user's Drive UI but automatically cross-device consistent.
-- **Token:** Access token only (no refresh token — there's no backend to store one). Lifetime: ~1 hour.
-- **Silent renewal:** Before the access token expires (minus 2-minute skew), call the token client again with the same scope and `prompt: ''`. If the user has an active Google session in the browser, it returns a new access token with no UI. If it fails (user signed out, session expired), show an unobtrusive re-sign-in banner.
-- **Storage:** Access token kept in-memory only (Zustand store). On tab close, user re-signs in — this is intentional and safer than localStorage for tokens. Device-id (UUID) is persisted to IndexedDB so we know the device across reloads.
+- **Scope:** `drive.appdata` only — hidden app-private folder, invisible in Drive UI.
+- **Token:** Access token only (no refresh token — no backend). Lifetime ~1 hour.
+- **Persistent session:** On app load, attempt silent re-auth (`prompt: ''`). If the user has an active Google session and previously consented, GIS returns a new token with no UI — the user never sees a sign-in prompt again. If silent re-auth fails (first visit, session expired, signed out of Google), show the sign-in button.
+- **Storage:** Access token in-memory (Zustand). On tab close the token clears, but silent re-auth on next open restores the session automatically.
+- **Device ID:** UUID stored in IndexedDB — persists across reloads regardless of auth state.
 
-**UX Flow:**
-1. User lands on login screen → "Sign In with Google" button centered, brief tagline: *"Your money. Your Drive. Never ours."*
-2. Click → Google token popup (one-time consent)
-3. Success → redirect to Dashboard
-4. First transaction triggers first sync ("Syncing...")
-5. Sync completes → "✓ Synced"
+**UX Flow (first sign-in):**
+1. User clicks "Sign in with Google" → Google token popup (one-time consent)
+2. Success → token stored in memory → sync begins automatically
+3. Pull from Drive → merge → "✓ Synced"
+4. All subsequent app opens: silent re-auth in background, user sees no sign-in prompt
 
 **Security Notes:**
-- Access token never logged
-- `drive.appdata` scope means we cannot read any other file in the user's Drive — minimal blast radius if the token leaks
-- Silent renewal uses top-level navigation, not embedded iframes, to avoid third-party cookie issues in Safari/iOS
-- **Webview wrappers:** Google blocks OAuth in embedded webviews. Any future Capacitor wrapper MUST use `@capacitor/browser` or a native OAuth plugin — not a WebView.
+- Access token never logged, never written to localStorage
+- `drive.appdata` scope: cannot read any other Drive file — minimal blast radius
+- Silent renewal uses top-level GIS flow, not iframes (avoids Safari 3rd-party cookie issues)
+- **Webview wrappers:** Google blocks OAuth in embedded webviews. Future Capacitor wrapper MUST use `@capacitor/browser` — not a WebView.
 
 ### 4.2 Transaction Management
 
@@ -231,37 +244,59 @@ export type LocalTransaction = Transaction & LocalTransactionMeta;
 
 We considered a separate `metadata.json` but inlining keeps the sync engine single-file and avoids a second ETag dance. Trade-off: the whole file is rewritten on each metadata update, which is fine at MVP scale (< 1 MB).
 
+**Sync model: auto-sync when signed in + online (offline-first)**
+
+The app is **offline-first**. All mutations write immediately to IndexedDB and work without any network. Sync to Drive is **automatic** whenever the user is signed in and has internet — no manual action needed. A **Sync button** is always visible in the header to show status and allow a manual force-sync.
+
+```
+                    signed in?
+                        │
+              ┌─────────┴──────────┐
+              No                  Yes
+              │                    │
+         Local only         online?
+         (IndexedDB)         │
+                       ┌────┴────┐
+                       No       Yes
+                       │         │
+                  Queue sync  Auto-sync
+                  in Dexie    (debounced)
+                  syncQueue
+                       │
+                  ─ online event ──► drain queue → sync
+```
+
+**Sync triggers (when signed in):**
+1. **After any mutation** — debounced 1s after last write; coalesces rapid edits into one sync
+2. **`online` event** — drains the IndexedDB `syncQueue` immediately when connectivity returns
+3. **App load / visibility change** — pull-only check (ETag diff); pushes only if local has pending changes
+4. **Sign-in** — pull from Drive immediately to hydrate local state, then push any local-pending changes
+5. **Sync button click** — force-sync now (bypasses debounce); always visible in header
+
 **Sync Flow (per-transaction merge + ETag):**
 
-1. **Write path (local → Drive):**
-   - Mutation → IndexedDB updated → mark `syncStatus='pending'` → enqueue sync job
-   - Sync engine picks up job (debounced 500ms after last mutation)
+1. **Bidirectional sync (full):** all triggers above
    - Fetch current `transactions.json` + its ETag
    - Per-transaction merge:
      - For each transaction ID: keep the one with the latest `updatedAt`
      - If `deletedAt` is set on EITHER version → merged version has `deletedAt` (delete wins)
-   - Upload merged file with `If-Match: <etag>` header
-   - On 200: update local `syncStatus='synced'`, update metadata
-   - On 412 Precondition Failed: fetch again, re-merge, retry (max 5 attempts with exponential backoff 500ms → 1s → 2s → 4s → 8s)
+   - If merged result differs from last-known remote → upload with `If-Match: <etag>`
+   - On 200: update local `syncStatus='synced'`, store new ETag
+   - On 412 Precondition Failed: fetch again, re-merge, retry (max 5, exponential backoff 500ms → 1s → 2s → 4s → 8s)
    - On 401: trigger silent token renewal, retry once
    - On 429: honor `Retry-After`, re-enqueue
    - On 5xx or network error: retry with backoff up to 5 times, then mark `syncStatus='error'`
 
-2. **Read path (Drive → local), on app load / visibility change / interval:**
-   - Fetch `transactions.json` + ETag
-   - If ETag matches last-seen ETag: no-op
-   - Else: per-transaction merge with local state (same rules)
-   - Write merged state to IndexedDB
-   - Emit `sync-updated` event → UI refreshes
+2. **Offline queuing:**
+   - Mutations always save to IndexedDB immediately (app fully usable offline)
+   - `syncStatus='pending'` badge in Sync button shows unsynced changes
+   - Queued sync ops stored in Dexie `syncQueue` table — survive tab close
+   - When internet returns (`online` event): drain queue → full sync
+   - No background sync / Workbox BackgroundSyncPlugin (that replays fetch requests; our sync is custom IndexedDB logic — wrong layer)
 
 3. **Multi-tab coordination (simple):**
-   - Each tab runs its own sync engine, debounced 500ms after the last mutation
-   - Tabs broadcast `tx-changed` events on a `BroadcastChannel('pfa')` so other tabs refresh their local UI from IndexedDB (no duplicate network fetches for UI updates)
-   - When two tabs both sync at nearly the same time, one will see a 412 ETag mismatch and retry — the retry loop handles it correctly. Occasional duplicate fetches are acceptable; no leader election needed.
-
-4. **Background sync (progressive enhancement):**
-   - On supported browsers (Chrome/Android), Workbox Background Sync retries queued mutations when connectivity returns even if the tab is closed
-   - On iOS and older browsers, sync resumes when the app is next opened — good enough for MVP
+   - Tabs broadcast `tx-changed` events on `BroadcastChannel('pfa')` so other tabs refresh local UI from IndexedDB
+   - If two tabs both sync simultaneously, one sees 412 → retry loop resolves it. No leader election needed.
 
 **Tombstone GC:**
 - On each sync, any tombstone with `deletedAt` older than 90 days is dropped from the merged file
@@ -873,7 +908,9 @@ The plan includes a task that walks through this, but spec'd here for reference:
 - [ ] Two devices signed into the same account see each other's changes within one manual refresh cycle
 - [ ] Concurrent edits on two devices do NOT lose data (per-tx merge verified by E2E test)
 - [ ] Deletes on one device remain deleted on another (tombstone test passes)
-- [ ] Offline add → online → auto-sync works without user action
+- [ ] Offline add → internet returns → auto-sync fires without user action (signed-in user)
+- [ ] App works fully without sign-in (local-only mode: add, edit, delete, export — no sync button required)
+- [ ] Silent GIS re-auth on app load restores signed-in state without prompting the user
 
 **Import/Export**
 - [ ] CSV import supports at least 3 date formats (ISO, US, EU)
@@ -930,6 +967,7 @@ The plan includes a task that walks through this, but spec'd here for reference:
 | Version | Date | Change | Author |
 |---------|------|--------|--------|
 | 1.0 | 2026-04-04 | Initial MVP spec | Claude Code |
+| 2.1 | 2026-04-10 | **Auth + sync UX overhaul:** Sign-in made optional — app works fully offline/local-only without Google account. Once signed in, session persists via GIS silent re-auth on app load (no re-sign-in prompt on subsequent visits). Sync changed from manual-only to auto-sync: fires on mutation (debounced 1s), `online` event, app load/visibility change, and sign-in. Sync button kept in header for status display + manual force-sync. Sync queue in Dexie drains on `online` event. | Claude Code |
 | 2.0 | 2026-04-10 | Grill-log fixes: `drive.appdata` scope, per-tx merge + tombstones + ETag concurrency, feature-sliced modular monolith, React 19 + Tailwind v4 + pnpm + current shadcn + vite-plugin-pwa, pragmatic TDD at boundaries, dark mode, multi-currency + locale formatting, JSON/CSV export, GitHub Pages subpath deployment, Google Cloud OAuth setup walkthrough, WCAG 2.1 AA commitment, doc layout migrated to `ai/PFA-1/`. Applied simplicity mandate: explicit "Zero Backend — Hard Limit" and "Simple Over Clever" principles with rules-out list; dropped multi-tab leader election in favor of per-tab debounce with tolerated duplicate fetches via BroadcastChannel; inlined `metadata.json` into `transactions.json` with devices array capped at 10; committed to Recharts with React.lazy on Reports page (no hand-rolled hedge); removed Sentry/external telemetry in favor of `console.error` + "Copy error details"; simplified silent OAuth token renewal; reframed testing as pragmatic TDD only on high-risk pure logic with integration/E2E elsewhere. Added Phase 2 roadmap item: one-way "Export to Google Sheets" projection (evaluated Sheets API as primary store and rejected on complexity/rate-limit grounds). | Claude Code |
 
 ---

@@ -2,11 +2,11 @@
 
 Zero-backend personal finance PWA. Single-user transaction tracker that syncs to the user's own Google Drive (hidden app folder) so their data is theirs and there's no server to run.
 
-**Status:** Pre-implementation. Spec and plan finalized; code scaffolding begins with Phase 0.
+**Status:** Phase 0 complete. Phase 1 (Shared Kernel) is next.
 
 **Canonical documents (read these first):**
-- `ai/PFA-1/requirements/spec.md` — v2.0 specification (source of truth for what)
-- `ai/PFA-1/plans/plan.md` — v2.0 implementation plan (source of truth for how/when)
+- `ai/PFA-1/requirements/spec.md` — v2.1 specification (source of truth for what)
+- `ai/PFA-1/plans/plan.md` — v2.1 implementation plan (source of truth for how/when)
 - `ai/PFA-1/requirements/grill-log.md` — rejected alternatives and why
 
 If anything in this file conflicts with the spec or plan, **the spec and plan win** — update this file to match.
@@ -40,8 +40,8 @@ Browser (PWA)
 | Layer | Choice | Why not something else |
 |------|--------|------------------------|
 | Runtime | React 19 | Stable by 2026; React Compiler obviates most `useMemo` |
-| Build | Vite 6 | Fastest; first-class PWA plugin; native ESM |
-| Package manager | pnpm 9+ | Mandated by `/side-projects/CLAUDE.md` global convention |
+| Build | Vite 8 | Fastest; first-class PWA plugin; native ESM |
+| Package manager | pnpm 10+ | Mandated by `/side-projects/CLAUDE.md` global convention |
 | Language | TypeScript 5, strict | `noUncheckedIndexedAccess` on; zero `any` |
 | Styling | Tailwind v4 (CSS-first) | `@theme` tokens + CSS variables; shadcn adapts automatically |
 | UI primitives | `shadcn` (current package, not `shadcn-ui`) | Copy-in components; full ownership |
@@ -182,20 +182,33 @@ interface Transaction {
 
 ---
 
-## Sync model (critical — reference spec §4.4)
+## Auth model (reference spec §4.1)
 
+- **Sign-in is optional** — app opens to Dashboard without any gate; works fully without Google account
+- **Local-only mode**: data in IndexedDB only; no sync
+- **Signed-in mode**: GIS implicit token flow, `drive.appdata` scope only
+- **Persistent session**: `prompt: ''` on app load restores signed-in state silently — user never re-signs unless they sign out
+- **Token**: Zustand memory only — never `localStorage`; device ID in IndexedDB
+- Unsigned users see dismissible "Sign in to sync" banner in header
+
+## Sync model (reference spec §4.4)
+
+- **Auto-sync** when signed in + online — no manual action needed
+- **Sync triggers:** mutation (debounced 1s), `online` event, app load / visibility change, sign-in
+- **Sync button** in header: always visible, shows status (synced/syncing/error/offline), allows force-sync
 - **Scope:** `drive.appdata` — hidden app folder, cross-device consistent
 - **Merge:** per-transaction, LWW per record, tiebroken by `deviceId` lexicographic
-- **Concurrency:** ETag on the Drive file; `If-Match` header on PATCH; 412 → re-read, re-merge, retry (max 5, exponential backoff)
-- **Deletes:** tombstones (`deletedAt`), not hard deletes. GC after 90 days.
-- **Multi-tab:** each tab syncs independently with 500ms debounce. Tabs coordinate UI refresh via `BroadcastChannel('pfa-sync')`. Occasional duplicate fetches are tolerated — simpler than leader election.
-- **Offline:** ops queue in Dexie `syncQueue` store; drain on `online` event and on successful sign-in.
+- **Concurrency:** ETag on Drive file; `If-Match` header on PATCH; 412 → re-read, re-merge, retry (max 5, exponential backoff)
+- **Deletes:** tombstones (`deletedAt`), GC after 90 days
+- **Multi-tab:** 1s debounce per tab; coordinate via `BroadcastChannel('pfa-sync')`; tolerate duplicate fetches
+- **Offline:** IndexedDB is always source of truth; ops queue in Dexie `syncQueue`; drain on `online` event
 
 **Do not:**
+- Gate the app behind a sign-in screen (sign-in is optional)
 - Implement leader election across tabs (explicit non-goal)
 - Use ID tokens for Drive API calls (wrong token type)
-- Store tokens in `localStorage` (XSS risk — use sessionStorage or memory)
-- Cache `googleapis.com` responses in the Service Worker (NetworkOnly per spec §4.6)
+- Store tokens in `localStorage` (XSS risk — Zustand memory only)
+- Cache `googleapis.com` in Service Worker (NetworkOnly per spec §4.6)
 
 ---
 
