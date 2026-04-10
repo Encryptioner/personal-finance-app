@@ -4,6 +4,7 @@ export interface SyncQueueEntry {
   id: string
   txId: string
   op: 'upsert' | 'delete'
+  status: 'pending' | 'failed'
   createdAt: string
   retryCount: number
   lastError?: string

@@ -20,11 +20,11 @@ export interface AppDbSchema {
 export const DB_STORES = {
   /** Primary: id (UUID v7). Indexes for list views and sync. */
   transactions: 'id, date, type, category, updatedAt, deletedAt',
-  /** Primary: id (UUID v7). Indexed by createdAt for drain-in-order. */
-  syncQueue: 'id, createdAt',
+  /** Primary: id (UUID v7). Indexed by createdAt, txId, and status for queue operations. */
+  syncQueue: 'id, createdAt, txId, status',
   /** Key-value store: single row keyed by "settings". */
   metadata: 'key',
 } as const satisfies Record<keyof AppDbSchema, string>
 
 export const DB_NAME = 'pfa-db'
-export const DB_VERSION = 1
+export const DB_VERSION = 2
