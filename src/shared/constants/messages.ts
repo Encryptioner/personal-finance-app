@@ -28,4 +28,9 @@ export const MESSAGES = {
     noAmountColumn: 'No amount column detected in CSV',
     parseError: (row: number) => `Could not parse row ${row}`,
   },
+  settings: {
+    exportSuccess: (format: string) => `Exported as ${format}`,
+    exportError: 'Export failed. Please try again.',
+    settingsSaved: 'Settings saved',
+  },
 } as const
