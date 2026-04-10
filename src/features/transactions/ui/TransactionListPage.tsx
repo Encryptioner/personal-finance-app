@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useTransactionStore, selectVisible } from '../model/transaction-store'
@@ -9,6 +9,7 @@ import { EmptyState } from './EmptyState'
 import { FilterBar } from './FilterBar'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { TransactionForm } from './TransactionForm'
+import { ImportWizard } from './ImportWizard'
 import type { Transaction } from '@/shared/types/transaction'
 
 const DEVICE_ID = 'local-device'
@@ -22,6 +23,7 @@ export function TransactionListPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Transaction | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   useEffect(() => {
     void load()
@@ -49,10 +51,16 @@ export function TransactionListPage() {
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Transactions</h1>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-1" />
+              Import
+            </Button>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -121,6 +129,16 @@ export function TransactionListPage() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Import dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import transactions</DialogTitle>
+          </DialogHeader>
+          <ImportWizard onComplete={() => setImportOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

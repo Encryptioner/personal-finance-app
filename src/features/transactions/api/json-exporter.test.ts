@@ -33,7 +33,7 @@ const FIXTURE_TXS: Transaction[] = [
 describe('exportJson', () => {
   it('produces valid JSON', () => {
     const json = exportJson(FIXTURE_TXS)
-    expect(() => JSON.parse(json)).not.toThrow()
+    expect(() => JSON.parse(json) as Record<string, unknown>).not.toThrow()
   })
 
   it('includes transactions array', () => {
@@ -80,7 +80,7 @@ describe('exportJson', () => {
 
   it('handles empty transaction list', () => {
     const json = exportJson([])
-    const parsed = JSON.parse(json) as { transactions: unknown[] }
+    const parsed = JSON.parse(json) as { transactions: unknown[]; schemaVersion: number }
     expect(parsed.transactions).toHaveLength(0)
     expect(parsed.schemaVersion).toBe(1)
   })
