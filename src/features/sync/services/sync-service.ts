@@ -82,8 +82,7 @@ export function createSyncService(deviceId: string, driveFileManager: DriveFileM
         mergedCount: cleaned.length,
       }
     } catch (e) {
-      const error = e as any
-      if (error?.status === 412) {
+      if (e instanceof Error && 'status' in e && (e as { status?: number }).status === 412) {
         // ETag conflict — re-read, re-merge, retry
         await new Promise((resolve) =>
           setTimeout(resolve, exponentialBackoff(retryCount)),
@@ -92,7 +91,7 @@ export function createSyncService(deviceId: string, driveFileManager: DriveFileM
       }
 
       // Non-412 error: bubble up
-      throw error
+      throw e
     }
   }
 

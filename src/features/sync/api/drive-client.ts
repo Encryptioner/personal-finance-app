@@ -40,8 +40,11 @@ export function createDriveClient(accessToken: string) {
 
   async function handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      const errorMsg = error?.error?.message || response.statusText
+      const error = (await response.json().catch(() => ({}))) as Record<string, unknown>
+      const errorMsg =
+        typeof error?.error === 'object' && error?.error !== null && 'message' in error.error
+          ? String((error.error as Record<string, unknown>).message)
+          : response.statusText
 
       if (response.status === 401) {
         throw new UnauthorizedError(errorMsg)
@@ -95,8 +98,11 @@ export function createDriveClient(accessToken: string) {
         })
 
         if (!response.ok) {
-          const error = await response.json().catch(() => ({}))
-          const errorMsg = error?.error?.message || response.statusText
+          const error = (await response.json().catch(() => ({}))) as Record<string, unknown>
+          const errorMsg =
+            typeof error?.error === 'object' && error?.error !== null && 'message' in error.error
+              ? String((error.error as Record<string, unknown>).message)
+              : response.statusText
 
           if (response.status === 401) {
             throw new UnauthorizedError(errorMsg)
@@ -169,8 +175,11 @@ export function createDriveClient(accessToken: string) {
         })
 
         if (!response.ok) {
-          const error = await response.json().catch(() => ({}))
-          const errorMsg = error?.error?.message || response.statusText
+          const error = (await response.json().catch(() => ({}))) as Record<string, unknown>
+          const errorMsg =
+            typeof error?.error === 'object' && error?.error !== null && 'message' in error.error
+              ? String((error.error as Record<string, unknown>).message)
+              : response.statusText
 
           if (response.status === 401) {
             throw new UnauthorizedError(errorMsg)

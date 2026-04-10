@@ -78,6 +78,7 @@ describe('AppDb', () => {
         op: 'upsert',
         createdAt: '2026-04-10T10:00:00Z',
         retryCount: 0,
+        status: 'pending',
       }
       await db.syncQueue.add(entry)
       const count = await db.syncQueue.count()
@@ -86,8 +87,8 @@ describe('AppDb', () => {
 
     it('retrieves entries ordered by createdAt', async () => {
       const entries: SyncQueueEntry[] = [
-        { id: 'sq-2', txId: 'tx-2', op: 'upsert', createdAt: '2026-04-10T11:00:00Z', retryCount: 0 },
-        { id: 'sq-1', txId: 'tx-1', op: 'upsert', createdAt: '2026-04-10T09:00:00Z', retryCount: 0 },
+        { id: 'sq-2', txId: 'tx-2', op: 'upsert', createdAt: '2026-04-10T11:00:00Z', retryCount: 0, status: 'pending' },
+        { id: 'sq-1', txId: 'tx-1', op: 'upsert', createdAt: '2026-04-10T09:00:00Z', retryCount: 0, status: 'pending' },
       ]
       await db.syncQueue.bulkAdd(entries)
       const ordered = await db.syncQueue.orderBy('createdAt').toArray()
