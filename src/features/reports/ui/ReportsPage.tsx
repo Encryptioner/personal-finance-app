@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useStore } from '@/shared/store/app-store'
+import { useMemo, useState, Suspense, useEffect } from 'react'
+import { useTransactionStore } from '@/features/transactions/model/transaction-store'
 import type { DateRange } from '@/features/reports/model/date-ranges'
 import { thisMonth } from '@/features/reports/model/date-ranges'
 import { byCategory, byMonth, summary } from '@/features/reports/model/aggregators'
@@ -7,15 +7,20 @@ import { DateRangePicker } from './DateRangePicker'
 import { StatsGrid } from './StatsGrid'
 import { CategoryDonut } from './CategoryDonut'
 import { MonthlyTrendChart } from './MonthlyTrendChart'
+import { track } from '@/shared/lib/analytics-service'
 
 /**
  * Full reports page with date range picker, aggregations, and charts.
  * Code-split via React.lazy() so Recharts only loads when this page is visited.
  */
 export function ReportsPage() {
-  const transactions = useStore((state) => state.transactions)
-  const currency = useStore((state) => state.settings.currency)
+  const transactions = useTransactionStore((s) => s.transactions)
+  const currency = 'USD'
   const [dateRange, setDateRange] = useState<DateRange>(thisMonth(new Date()))
+
+  useEffect(() => {
+    track.navigatedToReports()
+  }, [])
 
   // Filter transactions to date range and exclude tombstones
   const filteredTxs = useMemo(() => {
@@ -31,8 +36,8 @@ export function ReportsPage() {
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Reports</h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-400">
+        <h1 className="text-3xl font-bold text-foreground">Reports</h1>
+        <p className="mt-2 text-muted-foreground">
           View your transaction trends and category breakdown
         </p>
       </div>
@@ -47,13 +52,17 @@ export function ReportsPage() {
 
       {/* Charts grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <CategoryDonut data={categoryBreakdown} title="Expense by category" />
-        <MonthlyTrendChart data={monthlyTrend} title="Monthly trend" />
+        <Suspense fallback={<div className="h-64 rounded-lg bg-muted/50 animate-pulse" />}>
+          <CategoryDonut data={categoryBreakdown} title="Expense by category" />
+        </Suspense>
+        <Suspense fallback={<div className="h-64 rounded-lg bg-muted/50 animate-pulse" />}>
+          <MonthlyTrendChart data={monthlyTrend} title="Monthly trend" />
+        </Suspense>
       </div>
 
       {/* Transaction count */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+      <div className="rounded-lg border border-border bg-card p-6">
+        <p className="text-sm text-muted-foreground">
           Showing {stats.count} transaction{stats.count !== 1 ? 's' : ''} in the selected date range
         </p>
       </div>

@@ -77,7 +77,7 @@ export function ColumnMappingStep({
 
           return (
             <div key={field.key} className="flex items-center gap-3">
-              <Label className="w-28 shrink-0 text-sm">
+              <Label htmlFor={`mapping-${field.key}`} className="w-28 shrink-0 text-sm">
                 {field.label}
                 {field.required && <span className="text-destructive ml-0.5">*</span>}
               </Label>
@@ -90,7 +90,7 @@ export function ColumnMappingStep({
                   }))
                 }}
               >
-                <SelectTrigger className="flex-1">
+                <SelectTrigger id={`mapping-${field.key}`} className="flex-1">
                   <SelectValue placeholder="Select column…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,7 +109,7 @@ export function ColumnMappingStep({
 
       {/* Detected date format */}
       <div className="flex items-center gap-3">
-        <Label className="w-28 shrink-0 text-sm">Date format</Label>
+        <Label htmlFor="date-format" className="w-28 shrink-0 text-sm">Date format</Label>
         <Select
           value={dateFormat}
           onValueChange={(val) => {
@@ -117,7 +117,7 @@ export function ColumnMappingStep({
             onConfirm(currentMapping, val)
           }}
         >
-          <SelectTrigger className="flex-1">
+          <SelectTrigger id="date-format" className="flex-1">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +130,7 @@ export function ColumnMappingStep({
 
       {/* Missing fields warning */}
       {currentMapping.missingRequired.length > 0 && (
-        <p className="text-xs text-destructive">
+        <p className="text-xs text-destructive" role="alert">
           Missing required fields: {currentMapping.missingRequired.join(', ')}
         </p>
       )}

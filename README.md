@@ -14,6 +14,8 @@ pnpm dev
 
 App runs at `http://localhost:5173/personal-finance-app/`.
 
+**Live at:** https://encryptioner.github.io/personal-finance-app/
+
 ## Commands
 
 | Command | Description |

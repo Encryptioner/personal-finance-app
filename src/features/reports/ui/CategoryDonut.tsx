@@ -7,6 +7,8 @@ export interface CategoryDonutProps {
   title: string
 }
 
+const FOCUS_VISIBLE = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded'
+
 export function CategoryDonut({ data, title }: CategoryDonutProps) {
   const [showTable, setShowTable] = useState(false)
 
@@ -16,27 +18,31 @@ export function CategoryDonut({ data, title }: CategoryDonutProps) {
 
   if (chartData.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-        <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
-        <p className="text-center text-slate-500 dark:text-slate-400">No data available</p>
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h3 className="mb-4 text-lg font-semibold text-foreground">{title}</h3>
+        <p className="text-center text-muted-foreground">No data available</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+    <div className="rounded-lg border border-border bg-card p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         <button
           onClick={() => setShowTable(!showTable)}
-          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          className={`text-sm text-primary hover:text-primary/80 ${FOCUS_VISIBLE}`}
         >
           {showTable ? 'View chart' : 'View as table'}
         </button>
       </div>
 
       {!showTable ? (
-        <div className="h-80">
+        <div
+          className="h-80"
+          role="img"
+          aria-label={`${title} donut chart. Switch to table view for accessible data.`}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -74,20 +80,20 @@ function CategoryTable({ data }: CategoryTableProps) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b border-slate-200 dark:border-slate-700">
-          <th className="px-2 py-2 text-left font-semibold text-slate-900 dark:text-white">Category</th>
-          <th className="px-2 py-2 text-right font-semibold text-slate-900 dark:text-white">Amount</th>
-          <th className="px-2 py-2 text-right font-semibold text-slate-900 dark:text-white">%</th>
+        <tr className="border-b border-border">
+          <th className="px-2 py-2 text-left font-semibold text-foreground">Category</th>
+          <th className="px-2 py-2 text-right font-semibold text-foreground">Amount</th>
+          <th className="px-2 py-2 text-right font-semibold text-foreground">%</th>
         </tr>
       </thead>
       <tbody>
         {data.map((item) => (
-          <tr key={item.name} className="border-b border-slate-100 dark:border-slate-800">
-            <td className="px-2 py-2 text-slate-700 dark:text-slate-300">{item.name}</td>
-            <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">
+          <tr key={item.name} className="border-b border-border">
+            <td className="px-2 py-2 text-foreground">{item.name}</td>
+            <td className="px-2 py-2 text-right text-foreground">
               {(item.value / 100).toFixed(2)}
             </td>
-            <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">
+            <td className="px-2 py-2 text-right text-foreground">
               {((item.value / total) * 100).toFixed(1)}%
             </td>
           </tr>

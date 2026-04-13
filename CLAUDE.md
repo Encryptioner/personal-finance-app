@@ -122,7 +122,7 @@ pnpm preview                 # serve dist locally
 pnpm lint && pnpm typecheck && pnpm test:run && pnpm build
 ```
 
-**Node version:** 22 (see `.nvmrc`).
+**Node version:** 24 (see `.nvmrc` and package.json engines).
 
 ---
 

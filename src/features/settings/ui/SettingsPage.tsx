@@ -4,6 +4,7 @@ import { ThemeSection } from './ThemeSection'
 import { LocaleSection } from './LocaleSection'
 import { DataSection } from './DataSection'
 import { AboutSection } from './AboutSection'
+import { track } from '@/shared/lib/analytics-service'
 
 export function SettingsPage() {
   const { isLoading, initialize } = useSettingsStore()
@@ -11,6 +12,10 @@ export function SettingsPage() {
   useEffect(() => {
     void initialize()
   }, [initialize])
+
+  useEffect(() => {
+    track.navigatedToSettings()
+  }, [])
 
   if (isLoading) {
     return (

@@ -10,6 +10,9 @@ import { FilterBar } from './FilterBar'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { TransactionForm } from './TransactionForm'
 import { ImportWizard } from './ImportWizard'
+import { SyncButton } from '@/features/sync'
+import { DashboardTile } from '@/features/reports/ui/DashboardTile'
+import { track } from '@/shared/lib/analytics-service'
 import type { Transaction } from '@/shared/types/transaction'
 
 const DEVICE_ID = 'local-device'
@@ -31,18 +34,21 @@ export function TransactionListPage() {
 
   async function handleAdd(input: Parameters<typeof add>[0]) {
     await add(input, DEVICE_ID)
+    track.transactionAdded(input.type)
     setAddOpen(false)
   }
 
   async function handleEdit(input: Parameters<typeof add>[0]) {
     if (!editTarget) return
     await edit(editTarget.id, input, DEVICE_ID)
+    track.transactionEdited(input.type)
     setEditTarget(null)
   }
 
   async function handleDeleteConfirm() {
     if (!deleteTarget) return
     await remove(deleteTarget.id)
+    track.transactionDeleted(deleteTarget.type)
     setDeleteTarget(null)
   }
 
@@ -51,7 +57,8 @@ export function TransactionListPage() {
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Transactions</h1>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <SyncButton />
             <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-1" />
               Import
@@ -65,6 +72,7 @@ export function TransactionListPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-4 sm:py-6 space-y-4">
+        <DashboardTile />
         <FilterBar filters={filters} onChange={setFilters} />
 
         {visible.length === 0 ? (
@@ -78,7 +86,7 @@ export function TransactionListPage() {
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Category</th>
                   <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Type</th>
                   <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Amount</th>
-                  <th className="px-4 py-2.5" />
+                  <th className="px-4 py-2.5" scope="col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>

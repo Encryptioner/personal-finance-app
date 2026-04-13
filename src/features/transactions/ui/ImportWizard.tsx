@@ -10,6 +10,7 @@ import { detectDateFormat } from '../lib/date-format-detection'
 import { Button } from '@/components/ui/button'
 import { ColumnMappingStep } from './ColumnMappingStep'
 import { ImportPreviewStep } from './ImportPreviewStep'
+import { track } from '@/shared/lib/analytics-service'
 import type { TransactionInput } from '@/shared/types/transaction'
 
 /* ------------------------------------------------------------------ */
@@ -179,6 +180,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = useCallback((file: File) => {
+    track.csvUploaded()
     const reader = new FileReader()
     reader.onload = () => {
       const text = reader.result as string
@@ -246,6 +248,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     }
 
     dispatch({ type: 'IMPORT_COMPLETE', imported, skipped })
+    track.transactionImported(imported)
   }
 
   // ── Upload step ──
@@ -275,7 +278,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
           />
         </div>
         {step.error && (
-          <p className="text-sm text-destructive">{step.error}</p>
+          <p className="text-sm text-destructive" role="alert">{step.error}</p>
         )}
       </div>
     )

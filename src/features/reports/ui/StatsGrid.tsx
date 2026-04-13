@@ -21,12 +21,12 @@ export function StatsGrid({ stats, currency }: StatsGridProps) {
         currency={currency}
         className="text-red-600 dark:text-red-400"
       />
-      <StatTile label="Net" value={stats.net} currency={currency} className="text-blue-600 dark:text-blue-400" />
+      <StatTile label="Net" value={stats.net} currency={currency} className="text-primary" />
       <StatTile
         label="Avg Daily Spend"
         value={stats.avgDailySpend}
         currency={currency}
-        className="text-slate-600 dark:text-slate-400"
+        className="text-muted-foreground"
       />
     </div>
   )
@@ -41,8 +41,8 @@ interface StatTileProps {
 
 function StatTile({ label, value, currency, className = '' }: StatTileProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-      <p className="text-sm text-slate-600 dark:text-slate-400">{label}</p>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
       <p className={`text-2xl font-bold ${className}`}>{formatCurrency(value, currency)}</p>
     </div>
   )

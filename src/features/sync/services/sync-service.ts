@@ -3,6 +3,7 @@ import { mergeTransactions } from '@/features/sync/model/merge'
 import { removeStaleTombstones } from '@/features/sync/model/tombstone-gc'
 import type { DriveFileManager } from '@/features/sync/api/drive-file-manager'
 import type { DriveFileBody } from '@/shared/types/sync'
+import { broadcast } from './broadcast-channel'
 
 const CURRENT_SCHEMA_VERSION = 1
 const MAX_RETRIES = 5
@@ -76,7 +77,10 @@ export function createSyncService(deviceId: string, driveFileManager: DriveFileM
       // Step 8: Update local DB with merged result
       await db.transactions.bulkPut(cleaned)
 
-      // Step 9: Return success
+      // Step 9: Broadcast sync completion to other tabs
+      broadcast({ type: 'sync-complete', at: now })
+
+      // Step 10: Return success
       return {
         ok: true,
         mergedCount: cleaned.length,

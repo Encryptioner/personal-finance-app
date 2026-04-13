@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createSyncService } from '../services/sync-service'
 import { createDriveFileManager } from '../api/drive-file-manager'
 import { useAuthStore, getDeviceId } from '@/features/auth'
+import { track } from '@/shared/lib/analytics-service'
 
 export type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline'
 
@@ -50,6 +51,7 @@ export const useSyncStore = create<SyncState & SyncActions>((set, get) => ({
 
     // 3. Begin sync
     set({ status: 'syncing', error: null })
+    track.syncStarted()
 
     try {
       // 4. Get fresh token
@@ -70,16 +72,20 @@ export const useSyncStore = create<SyncState & SyncActions>((set, get) => ({
 
       // 8. Create and run sync service
       const syncService = createSyncService(deviceId, driveFileManager)
+      const startTime = Date.now()
       const result = await syncService.runSync(fileId)
 
       // 9. Update state
       if (result.ok) {
+        const syncDuration = Date.now() - startTime
+        track.syncCompleted(syncDuration, result.mergedCount)
         set({
           status: 'idle',
           lastSyncAt: new Date().toISOString(),
           error: null,
         })
       } else {
+        track.syncFailed(result.error || 'unknown')
         set({
           status: 'error',
           error: result.error ?? 'Sync failed',
