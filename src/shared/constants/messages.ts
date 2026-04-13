@@ -22,6 +22,7 @@ export const MESSAGES = {
     signInRequired: 'Sign in with Google to sync across devices',
     tokenExpired: 'Your session has expired. Please sign in again.',
     signInFailed: 'Sign-in failed. Please try again.',
+    notConfigured: 'Google sign-in is not configured for this deployment.',
   },
   csv: {
     noDateColumn: 'No date column detected in CSV',

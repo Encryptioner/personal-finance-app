@@ -51,7 +51,7 @@ export function HeaderAuthSection() {
       type="button"
       disabled={isSigningIn}
       onClick={() => void useAuthStore.getState().signIn()}
-      className="text-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded disabled:opacity-50"
+      className="text-sm font-medium text-primary hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded disabled:opacity-50"
     >
       {isSigningIn ? 'Signing in...' : 'Sign in'}
     </button>

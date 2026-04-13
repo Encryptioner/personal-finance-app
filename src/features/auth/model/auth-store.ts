@@ -4,6 +4,7 @@ import * as tokenStorage from '../api/token-storage'
 import { getTokenState } from './token-state-machine'
 import { getDeviceId } from '../lib/device-id'
 import { MESSAGES } from '@/shared/constants/messages'
+import { isGoogleAuthConfigured, env } from '@/shared/config/env'
 
 export type AuthStatus = 'idle' | 'signing-in' | 'authenticated' | 'error'
 
@@ -64,6 +65,10 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   },
 
   async signIn() {
+    if (!isGoogleAuthConfigured() || !env.googleClientId) {
+      set({ status: 'error', error: MESSAGES.auth.notConfigured })
+      return
+    }
     set({ status: 'signing-in', error: null })
     try {
       const response = await gisClient.requestAccessToken()
