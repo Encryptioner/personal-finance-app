@@ -1,0 +1,21 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "pnpm preview",
+      "startServerReadyPattern": "Local",
+      "url": ["http://localhost:4173/personal-finance-app/"],
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": "warn",
+        "categories:accessibility": "warn",
+        "categories:best-practices": "warn",
+        "categories:pwa": "warn"
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
