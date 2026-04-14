@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/features/auth'
 import { db } from '@/shared/db/db'
 import { exportCsv } from '@/features/transactions/api/csv-exporter'
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button'
 
 export function DataSection() {
   const authStore = useAuthStore()
+  const isAuthenticated = authStore.status === 'authenticated'
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExportJson = async () => {
@@ -43,6 +45,11 @@ export function DataSection() {
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Data & Account</h2>
       <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          {isAuthenticated
+            ? "Your transactions are synced to your Google Drive's hidden app folder. Only you can access this data."
+            : 'Your transactions are stored locally on this device. Sign in to sync across devices.'}
+        </p>
         <div>
           <h3 className="mb-2 text-sm font-medium">Export</h3>
           <div className="flex gap-2">
@@ -64,14 +71,19 @@ export function DataSection() {
             </Button>
           </div>
         </div>
-        <div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => void handleSignOut()}
-          >
-            Sign Out
-          </Button>
+        <div className="flex items-center justify-between">
+          <Link to="/privacy" className="text-sm text-primary hover:underline">
+            Privacy Policy
+          </Link>
+          {isAuthenticated && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleSignOut()}
+            >
+              Sign Out
+            </Button>
+          )}
         </div>
       </div>
     </div>

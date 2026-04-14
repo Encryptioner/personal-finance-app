@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const APP_VERSION = '1.0.0'
 
 export function AboutSection() {
@@ -10,10 +12,13 @@ export function AboutSection() {
           <p>Version {APP_VERSION}</p>
         </div>
         <p>
-          A zero-backend personal finance tracker that syncs to your Google Drive.
-          Your data is yours — encrypted and stored in your own cloud.
+          Your data stays on your device and in your own Google Drive. No
+          server, no tracking.
         </p>
         <div className="flex gap-4">
+          <Link to="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </Link>
           <a
             href="https://github.com/Encryptioner/personal-finance-app"
             target="_blank"

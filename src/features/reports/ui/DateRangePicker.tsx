@@ -72,7 +72,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={`Date range: ${value.from} to ${value.to}`}
-        className={`inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 ${FOCUS_VISIBLE}`}
+        className={`inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 cursor-pointer ${FOCUS_VISIBLE}`}
       >
         {value.from} to {value.to}
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -100,7 +100,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 <button
                   key={preset.label}
                   onClick={() => handlePreset(preset.fn)}
-                  className={`rounded px-2 py-1 text-left text-sm text-foreground hover:bg-muted/50 ${FOCUS_VISIBLE}`}
+                  className={`rounded px-2 py-1 text-left text-sm text-foreground hover:bg-muted/50 cursor-pointer ${FOCUS_VISIBLE}`}
                 >
                   {preset.label}
                 </button>
@@ -135,7 +135,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 <button
                   onClick={handleCustom}
                   disabled={!customFrom || !customTo || customFrom > customTo}
-                  className={`w-full rounded bg-primary px-2 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 ${FOCUS_VISIBLE}`}
+                  className={`w-full rounded bg-primary px-2 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer ${FOCUS_VISIBLE}`}
                 >
                   Apply
                 </button>

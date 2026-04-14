@@ -50,7 +50,7 @@ export function SyncButton() {
         onClick={handleClick}
         disabled={!isAuthenticated || status === 'syncing'}
         aria-label={getAriaLabel(status, isAuthenticated, timeAgo)}
-        className={`inline-flex items-center gap-1.5 text-sm font-medium rounded px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${config.className} disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50`}
+        className={`inline-flex items-center gap-1.5 text-sm font-medium rounded px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer ${config.className} disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50`}
       >
         <Icon className="h-4 w-4" />
         <span className="hidden sm:inline">{config.label}</span>

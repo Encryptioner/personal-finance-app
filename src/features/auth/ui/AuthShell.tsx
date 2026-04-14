@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../model/auth-store'
 import { SignInBanner } from './SignInBanner'
 import { ProfileMenu } from './ProfileMenu'
+import { SignInConsentDialog } from './SignInConsentDialog'
 import { getDeviceId } from '../model/auth-store'
 import { env, isGoogleAuthConfigured } from '@/shared/config/env'
 
@@ -41,19 +42,28 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 export function HeaderAuthSection() {
   const status = useAuthStore((s) => s.status)
   const isSigningIn = status === 'signing-in'
+  const [consentOpen, setConsentOpen] = useState(false)
 
   if (status === 'authenticated') {
     return <ProfileMenu />
   }
 
   return (
-    <button
-      type="button"
-      disabled={isSigningIn}
-      onClick={() => void useAuthStore.getState().signIn()}
-      className="text-sm font-medium text-primary hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded disabled:opacity-50"
-    >
-      {isSigningIn ? 'Signing in...' : 'Sign in'}
-    </button>
+    <>
+      <button
+        type="button"
+        disabled={isSigningIn}
+        onClick={() => setConsentOpen(true)}
+        className="text-sm font-medium text-primary hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded disabled:opacity-50"
+      >
+        {isSigningIn ? 'Signing in...' : 'Sign in'}
+      </button>
+
+      <SignInConsentDialog
+        open={consentOpen}
+        onOpenChange={setConsentOpen}
+        onConfirm={() => void useAuthStore.getState().signIn()}
+      />
+    </>
   )
 }

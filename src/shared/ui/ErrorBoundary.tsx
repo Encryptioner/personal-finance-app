@@ -43,14 +43,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={this.handleCopy}
-              className="text-sm font-medium px-4 py-2 rounded border border-border bg-card hover:bg-muted/50 transition-colors"
+              className="text-sm font-medium px-4 py-2 rounded border border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
             >
               Copy error details
             </button>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="text-sm font-medium px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="text-sm font-medium px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
             >
               Reload
             </button>

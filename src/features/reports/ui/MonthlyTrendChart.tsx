@@ -28,7 +28,7 @@ export function MonthlyTrendChart({ data, title }: MonthlyTrendChartProps) {
         <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         <button
           onClick={() => setShowTable(!showTable)}
-          className={`text-sm text-primary hover:text-primary/80 ${FOCUS_VISIBLE}`}
+          className={`text-sm text-primary hover:text-primary/80 cursor-pointer ${FOCUS_VISIBLE}`}
         >
           {showTable ? 'View chart' : 'View as table'}
         </button>

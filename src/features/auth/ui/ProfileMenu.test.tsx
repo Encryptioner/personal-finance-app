@@ -58,6 +58,20 @@ describe('ProfileMenu', () => {
     expect(screen.getByRole('menuitem', { name: /sign out/i })).toBeInTheDocument()
   })
 
+  it('shows synced status when menu is open', async () => {
+    const user = userEvent.setup()
+    mockStore.profile = {
+      email: 'test@example.com',
+      name: 'Test User',
+      picture: 'https://pic.url/photo.jpg',
+    }
+
+    render(<ProfileMenu />)
+
+    await user.click(screen.getByRole('button', { name: /test user/i }))
+    expect(screen.getByText(/synced to your google drive/i)).toBeInTheDocument()
+  })
+
   it('calls signOut when sign out clicked', async () => {
     const user = userEvent.setup()
     mockStore.profile = {

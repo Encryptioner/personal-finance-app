@@ -7,6 +7,7 @@ import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 // Lazy-load reports and settings to code-split
 const ReportsPage = lazy(() => import('@/features/reports').then((m) => ({ default: m.ReportsPage })))
 const SettingsPage = lazy(() => import('@/features/settings').then((m) => ({ default: m.SettingsPage })))
+const PrivacyPage = lazy(() => import('@/features/settings').then((m) => ({ default: m.PrivacyPage })))
 
 export const router = createBrowserRouter(
   [
@@ -30,6 +31,14 @@ export const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageSkeleton />}>
               <SettingsPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: '/privacy',
+          element: (
+            <Suspense fallback={<PageSkeleton />}>
+              <PrivacyPage />
             </Suspense>
           ),
         },

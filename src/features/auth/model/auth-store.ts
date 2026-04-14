@@ -58,9 +58,9 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       // Try silent re-auth — restores session without UI
       await get().silentSignIn()
     } catch {
-      // Silent re-auth failure is normal (first visit, signed out)
-      // Stay in 'idle' state — no error shown to user
-      set({ status: 'idle' })
+      // Script load failure (ad blocker, network issue)
+      // Show error so user knows why sign-in won't work
+      set({ status: 'error', error: MESSAGES.auth.scriptsBlocked })
     }
   },
 
@@ -73,7 +73,13 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
     try {
       const response = await gisClient.requestAccessToken()
       if (!response) {
-        set({ status: 'idle', error: MESSAGES.auth.signInFailed })
+        const oauthError = gisClient.getLastError()
+        if (oauthError === 'popup_closed_by_user') {
+          // User closed the popup — not an error, return to idle
+          set({ status: 'idle' })
+        } else {
+          set({ status: 'idle', error: MESSAGES.auth.signInFailed })
+        }
         return
       }
 

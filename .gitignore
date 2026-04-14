@@ -36,3 +36,5 @@ vite.config.ts.timestamp-*
 # Screenshots
 screenshots/*
 
+# MCP output
+.playwright-mcp/*

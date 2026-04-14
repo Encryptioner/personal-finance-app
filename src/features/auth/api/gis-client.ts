@@ -17,6 +17,7 @@ export interface GisClientConfig {
 class GisClient {
   private tokenClient: GisTokenClient | null = null
   private pendingCallback: ((resp: TokenResponse | null) => void) | null = null
+  private lastError: string | null = null
 
   /**
    * Initialize the GIS token client. Must be called after the GIS script loads.
@@ -31,6 +32,7 @@ class GisClient {
       callback: (response) => {
         if (this.pendingCallback) {
           if (response.error) {
+            this.lastError = response.error
             this.pendingCallback(null)
           } else {
             this.pendingCallback({
@@ -70,6 +72,17 @@ class GisClient {
       this.pendingCallback = resolve
       this.tokenClient!.requestAccessToken({ prompt: '' })
     })
+  }
+
+  /**
+   * Get the last OAuth error code (e.g. 'popup_closed_by_user').
+   * Returns null if the last request succeeded or no request was made.
+   * Resets after reading.
+   */
+  getLastError(): string | null {
+    const err = this.lastError
+    this.lastError = null
+    return err
   }
 
   /**

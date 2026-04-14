@@ -10,6 +10,7 @@ vi.mock('../api/gis-client', () => ({
     requestAccessToken: vi.fn().mockResolvedValue(null),
     requestSilentToken: vi.fn().mockResolvedValue(null),
     revoke: vi.fn().mockResolvedValue(undefined),
+    getLastError: vi.fn().mockReturnValue(null),
   },
 }))
 
@@ -29,6 +30,12 @@ vi.stubGlobal('fetch', mockFetch)
 // Mock device-id
 vi.mock('../lib/device-id', () => ({
   getDeviceId: vi.fn().mockResolvedValue('device-123'),
+}))
+
+// Mock env config so signIn passes the isGoogleAuthConfigured() check
+vi.mock('@/shared/config/env', () => ({
+  env: { googleClientId: 'test-client-id' },
+  isGoogleAuthConfigured: () => true,
 }))
 
 describe('auth-store', () => {
@@ -77,6 +84,18 @@ describe('auth-store', () => {
 
       expect(useAuthStore.getState().status).toBe('idle')
       expect(useAuthStore.getState().error).toBeTruthy()
+    })
+
+    it('returns to idle without error when popup is closed by user', async () => {
+      const { gisClient } = await import('../api/gis-client')
+      vi.mocked(gisClient.requestAccessToken).mockResolvedValue(null)
+      vi.mocked(gisClient.getLastError).mockReturnValue('popup_closed_by_user')
+
+      const store = useAuthStore.getState()
+      await store.signIn()
+
+      expect(useAuthStore.getState().status).toBe('idle')
+      expect(useAuthStore.getState().error).toBeNull()
     })
 
     it('sets error on unexpected failure', async () => {

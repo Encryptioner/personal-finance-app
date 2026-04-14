@@ -67,6 +67,7 @@ export function ProfileMenu() {
           <div className="px-3 py-2 border-b border-border">
             <p className="text-sm font-medium truncate">{profile.name}</p>
             <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+            <p className="text-xs text-muted-foreground mt-1">Synced to your Google Drive</p>
           </div>
           <button
             type="button"
