@@ -35,6 +35,27 @@ describe('parseDate', () => {
   it('returns undefined for empty string', () => {
     expect(parseDate('')).toBeUndefined()
   })
+
+  it('returns undefined for ISO string with invalid month (month 13)', () => {
+    expect(parseDate('2026-13-01')).toBeUndefined()
+  })
+
+  it('returns undefined for ISO string with invalid day (day 32)', () => {
+    expect(parseDate('2026-01-32')).toBeUndefined()
+  })
+
+  it('returns undefined for slash format with invalid date', () => {
+    expect(parseDate('13/32/2026')).toBeUndefined()
+  })
+
+  it('returns undefined for dot format with invalid date', () => {
+    expect(parseDate('32.13.2026')).toBeUndefined()
+  })
+
+  it('parses slash format defaulting to US when no hint given', () => {
+    // 04/10/2026 with no hint → US: month=04, day=10
+    expect(parseDate('04/10/2026')).toBe('2026-04-10')
+  })
 })
 
 describe('formatDate', () => {

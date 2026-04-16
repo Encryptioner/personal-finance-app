@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -50,7 +50,7 @@ export function TransactionForm({ defaultValues, onSubmit, onCancel, currency = 
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,7 +64,7 @@ export function TransactionForm({ defaultValues, onSubmit, onCancel, currency = 
     },
   })
 
-  const currentCurrency = watch('currency')
+  const currentCurrency = useWatch({ control, name: 'currency' }) ?? currency
 
   function handleValidSubmit(values: FormValues) {
     void onSubmit({

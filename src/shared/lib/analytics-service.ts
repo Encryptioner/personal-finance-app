@@ -5,7 +5,7 @@
  * is the placeholder value, all calls become no-ops (privacy mode).
  */
 
-import { initAnalytics, trackEvent, trackPageView } from './analytics'
+import { initAnalytics, trackEvent } from './analytics'
 
 // ── Event types ──────────────────────────────────────────────────────
 
@@ -59,10 +59,7 @@ class AnalyticsService {
     trackEvent(eventType, params as Record<string, string | number | boolean>)
   }
 
-  trackPageView(path: string): void {
-    if (!this.initialized) return
-    trackPageView(path)
-  }
+
 }
 
 const service = new AnalyticsService()

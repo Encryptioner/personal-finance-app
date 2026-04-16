@@ -20,11 +20,17 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       thresholds: {
-        // Enforced per spec §10.3 — will be tightened per-folder in later phases
+        // Global fallback (untested areas like UI pages keep global from blocking CI)
         lines: 0,
         functions: 0,
         branches: 0,
         statements: 0,
+        // Per-folder enforcement per spec §10.3
+        'src/shared/lib/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        'src/shared/validation/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        'src/features/sync/api/**': { statements: 90, branches: 90, functions: 80, lines: 90 },
+        'src/features/sync/model/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/features/auth/model/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
       },
       include: ['src/**'],
       exclude: ['src/test/**', 'src/vite-env.d.ts', 'src/**/*.d.ts'],

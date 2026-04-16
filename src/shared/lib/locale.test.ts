@@ -20,4 +20,20 @@ describe('resolveDefaultLocale', () => {
     expect(typeof resolveDefaultLocale()).toBe('string')
     expect(resolveDefaultLocale().length).toBeGreaterThan(0)
   })
+
+  it('returns navigator.language when available', () => {
+    Object.defineProperty(navigator, 'language', { value: 'fr-FR', writable: true, configurable: true })
+    expect(resolveDefaultLocale()).toBe('fr-FR')
+  })
+
+  it('returns "en-US" when navigator.language is empty string', () => {
+    Object.defineProperty(navigator, 'language', { value: '', writable: true, configurable: true })
+    expect(resolveDefaultLocale()).toBe('en-US')
+  })
+})
+
+describe('getUserCurrency - edge cases', () => {
+  it('returns USD for locale with no region subtag', () => {
+    expect(getUserCurrency('en')).toBe('USD')
+  })
 })

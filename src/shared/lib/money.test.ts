@@ -58,9 +58,17 @@ describe('parseMoney', () => {
     expect(result).toEqual({ ok: true, value: 1234 })
   })
 
-  it('returns error for non-numeric input', () => {
+  it('returns error for non-numeric input (abc strips to empty)', () => {
     const result = parseMoney('abc', 'USD')
     expect(result.ok).toBe(false)
+  })
+
+  it('returns error when cleaned value is non-parseable (dot only)', () => {
+    const result = parseMoney('.', 'USD')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.message).toContain('Cannot parse')
+    }
   })
 
   it('returns error for empty string', () => {

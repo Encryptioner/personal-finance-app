@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { resolveTheme, applyTheme } from './theme-manager'
+import { resolveTheme, applyTheme, listenToSystemTheme } from './theme-manager'
 
 describe('theme-manager', () => {
   beforeEach(() => {
@@ -68,6 +68,43 @@ describe('theme-manager', () => {
       document.documentElement.setAttribute('data-theme', 'dark')
       applyTheme('system')
       expect(document.documentElement.getAttribute('data-theme')).toBeNull()
+    })
+  })
+
+  describe('listenToSystemTheme()', () => {
+    it('calls callback with true when system changes to dark', () => {
+      const handlers: Array<(e: MediaQueryListEvent) => void> = []
+      const mockMedia = {
+        matches: false,
+        media: '(prefers-color-scheme: dark)',
+        onchange: null,
+        addEventListener: vi.fn((_: string, handler: (e: MediaQueryListEvent) => void) => {
+          handlers.push(handler)
+        }),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      }
+
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockReturnValue(mockMedia),
+      })
+
+      const callback = vi.fn()
+      const unsubscribe = listenToSystemTheme(callback)
+
+      // Simulate system going dark
+      handlers.forEach((h) => h({ matches: true } as MediaQueryListEvent))
+      expect(callback).toHaveBeenCalledWith(true)
+
+      // Simulate system going light
+      handlers.forEach((h) => h({ matches: false } as MediaQueryListEvent))
+      expect(callback).toHaveBeenCalledWith(false)
+
+      unsubscribe()
+      expect(mockMedia.removeEventListener).toHaveBeenCalled()
     })
   })
 })

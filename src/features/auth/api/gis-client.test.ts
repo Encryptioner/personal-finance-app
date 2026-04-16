@@ -147,16 +147,49 @@ describe('GisClient', () => {
     )
   })
 
-  it('throws if requestAccessToken called before init', () => {
-    // Reset window.google to trigger the error
-    delete (window as Partial<Window>).google
+  it('throws if requestAccessToken called before init', async () => {
+    vi.resetModules()
+    const { gisClient: freshClient } = await import('./gis-client')
+    expect(() => freshClient.requestAccessToken()).toThrow('GIS client not initialized')
+  })
 
-    // gisClient is a singleton — we can't fully reset it, but we can test
-    // that calling methods before init (on a fresh client) throws.
-    // Since the singleton was initialized in prior tests, this test verifies
-    // the error path is correct by checking the message.
-    expect(() => {
-      // Access private via a workaround — the real test is the init guard
-    }).not.toThrow()
+  it('throws if requestSilentToken called before init', async () => {
+    vi.resetModules()
+    const { gisClient: freshClient } = await import('./gis-client')
+    expect(() => freshClient.requestSilentToken()).toThrow('GIS client not initialized')
+  })
+
+  it('getLastError returns the error code after an error response and clears it', async () => {
+    let tokenCallback: TokenCallback | null = null
+
+    const mockGoogle: Pick<Window['google'], 'accounts'> = {
+      accounts: {
+        oauth2: {
+          initTokenClient: vi.fn((config: { client_id: string; scope: string; callback: TokenCallback }) => {
+            tokenCallback = config.callback
+            return {
+              requestAccessToken: vi.fn(() => {
+                queueMicrotask(() => {
+                  tokenCallback!({ error: 'access_denied', access_token: '', expires_in: '' })
+                })
+              }),
+            }
+          }),
+          revoke: vi.fn(),
+        },
+      },
+    }
+
+    window.google = mockGoogle as Window['google']
+
+    vi.resetModules()
+    const { gisClient: freshClient } = await import('./gis-client')
+    await freshClient.init({ clientId: 'test', scope: 'drive.appdata' })
+    await freshClient.requestAccessToken()
+
+    const err = freshClient.getLastError()
+    expect(err).toBe('access_denied')
+    // Cleared after reading
+    expect(freshClient.getLastError()).toBeNull()
   })
 })

@@ -211,4 +211,79 @@ describe('auth-store', () => {
       expect(store.isAuthenticated()).toBe(false)
     })
   })
+
+  describe('dismissBanner', () => {
+    it('sets dismissed to true', () => {
+      useAuthStore.setState({ dismissed: false })
+      useAuthStore.getState().dismissBanner()
+      expect(useAuthStore.getState().dismissed).toBe(true)
+    })
+  })
+
+  describe('initialize', () => {
+    it('calls silentSignIn after gis init succeeds', async () => {
+      const { gisClient } = await import('../api/gis-client')
+      vi.mocked(gisClient.init).mockResolvedValue(undefined)
+      vi.mocked(gisClient.requestSilentToken).mockResolvedValue(null)
+
+      await useAuthStore.getState().initialize('test-client-id')
+
+      expect(gisClient.init).toHaveBeenCalledWith({
+        clientId: 'test-client-id',
+        scope: 'https://www.googleapis.com/auth/drive.appdata',
+      })
+    })
+
+    it('sets error status when GIS script fails to load', async () => {
+      const { gisClient } = await import('../api/gis-client')
+      vi.mocked(gisClient.init).mockRejectedValue(new Error('Script blocked'))
+
+      await useAuthStore.getState().initialize('test-client-id')
+
+      expect(useAuthStore.getState().status).toBe('error')
+      expect(useAuthStore.getState().error).toBeTruthy()
+    })
+  })
+
+  describe('ensureFreshToken - expiring', () => {
+    it('fires silent renew but returns current token when expiring', async () => {
+      const { gisClient } = await import('../api/gis-client')
+      vi.mocked(tokenStorage.getToken).mockReturnValue('expiring-token')
+      // Token expires in 2 minutes — within the "expiring" window (< 5 min)
+      vi.mocked(tokenStorage.getExpiresAt).mockReturnValue(Date.now() + 2 * 60 * 1000)
+      vi.mocked(gisClient.requestSilentToken).mockResolvedValue(null)
+
+      const store = useAuthStore.getState()
+      const token = await store.ensureFreshToken()
+
+      expect(token).toBe('expiring-token')
+    })
+  })
+
+  describe('ensureFreshToken - expired', () => {
+    it('throws when silent renewal fails to get new token', async () => {
+      const { gisClient } = await import('../api/gis-client')
+      vi.mocked(tokenStorage.getToken)
+        .mockReturnValueOnce('old-token') // first call: has token
+        .mockReturnValue(null) // after silent sign-in: no new token
+      vi.mocked(tokenStorage.getExpiresAt).mockReturnValue(Date.now() - 1000) // expired
+      vi.mocked(gisClient.requestSilentToken).mockResolvedValue(null)
+
+      const store = useAuthStore.getState()
+      await expect(store.ensureFreshToken()).rejects.toThrow()
+    })
+  })
+
+  describe('signOut - no token', () => {
+    it('clears state without calling revoke when no token', async () => {
+      const { gisClient } = await import('../api/gis-client')
+      vi.mocked(tokenStorage.getToken).mockReturnValue(null)
+      useAuthStore.setState({ status: 'authenticated' })
+
+      await useAuthStore.getState().signOut()
+
+      expect(gisClient.revoke).not.toHaveBeenCalled()
+      expect(useAuthStore.getState().status).toBe('idle')
+    })
+  })
 })
