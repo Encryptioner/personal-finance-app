@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { db } from '@/shared/db/db'
 import { DEFAULT_SETTINGS } from '@/shared/types/settings'
 import { applyTheme } from '@/features/settings/lib/theme-manager'
+import { setAnalyticsEnabled } from '@/shared/lib/analytics-service'
 import type { UserSettings, Theme } from '@/shared/types/settings'
 
 interface SettingsState {
@@ -11,6 +12,7 @@ interface SettingsState {
   updateTheme: (theme: Theme) => Promise<void>
   updateCurrency: (currency: string) => Promise<void>
   updateLocale: (locale: string) => Promise<void>
+  updateAnalyticsEnabled: (enabled: boolean) => Promise<void>
 }
 
 const SETTINGS_KEY = 'pfa-settings'
@@ -22,10 +24,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   initialize: async () => {
     try {
       const stored = await db.metadata.get(SETTINGS_KEY)
-      const loaded: UserSettings = stored || DEFAULT_SETTINGS
+      const loaded: UserSettings = stored
+        ? { ...DEFAULT_SETTINGS, ...stored }
+        : DEFAULT_SETTINGS
       set({ settings: loaded, isLoading: false })
-      // Apply theme on init
       applyTheme(loaded.theme)
+      setAnalyticsEnabled(loaded.analyticsEnabled ?? true)
     } catch (error) {
       console.error('[settings-store] Failed to initialize:', error)
       set({ settings: DEFAULT_SETTINGS, isLoading: false })
@@ -48,6 +52,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   updateLocale: async (locale: string) => {
     const updated = { ...get().settings, locale }
     set({ settings: updated })
+    await db.metadata.put({ key: SETTINGS_KEY, ...updated })
+  },
+
+  updateAnalyticsEnabled: async (enabled: boolean) => {
+    const updated = { ...get().settings, analyticsEnabled: enabled }
+    set({ settings: updated })
+    setAnalyticsEnabled(enabled)
     await db.metadata.put({ key: SETTINGS_KEY, ...updated })
   },
 }))

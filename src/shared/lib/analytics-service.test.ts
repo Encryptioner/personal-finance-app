@@ -9,11 +9,12 @@ vi.mock('./analytics', () => ({
   trackEvent: mockTrackEvent,
 }))
 
-const { track } = await import('./analytics-service')
+const { track, setAnalyticsEnabled } = await import('./analytics-service')
 
 describe('analytics-service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    setAnalyticsEnabled(true)
   })
 
   it('exposes all required track methods', () => {
@@ -150,6 +151,21 @@ describe('analytics-service', () => {
     it('calls trackEvent with app_opened', () => {
       track.appOpened()
       expect(mockTrackEvent).toHaveBeenCalledWith('app_opened', undefined)
+    })
+  })
+
+  describe('setAnalyticsEnabled', () => {
+    it('suppresses trackEvent calls when disabled', () => {
+      setAnalyticsEnabled(false)
+      track.transactionAdded('expense')
+      expect(mockTrackEvent).not.toHaveBeenCalled()
+    })
+
+    it('resumes trackEvent calls when re-enabled', () => {
+      setAnalyticsEnabled(false)
+      setAnalyticsEnabled(true)
+      track.transactionAdded('expense')
+      expect(mockTrackEvent).toHaveBeenCalledWith('transaction_added', { transaction_type: 'expense' })
     })
   })
 

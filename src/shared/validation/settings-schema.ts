@@ -9,6 +9,7 @@ export const settingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   deviceId: z.string().min(1, MESSAGES.validation.missingDeviceId),
   dismissedSignInBanner: z.boolean(),
+  analyticsEnabled: z.boolean(),
 })
 
 export type SettingsSchemaInput = z.infer<typeof settingsSchema>

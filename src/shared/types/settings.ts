@@ -6,6 +6,7 @@ export interface UserSettings {
   theme: Theme
   deviceId: string // UUID, persisted to IndexedDB
   dismissedSignInBanner: boolean
+  analyticsEnabled: boolean // opt-out of anonymous feature-usage telemetry
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -14,4 +15,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'system',
   deviceId: '',
   dismissedSignInBanner: false,
+  analyticsEnabled: true,
 }

@@ -7,6 +7,7 @@ const valid = {
   theme: 'system' as const,
   deviceId: 'device-abc-123',
   dismissedSignInBanner: false,
+  analyticsEnabled: true,
 }
 
 describe('settingsSchema', () => {

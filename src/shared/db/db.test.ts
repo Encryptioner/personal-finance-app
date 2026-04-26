@@ -106,6 +106,7 @@ describe('AppDb', () => {
         theme: 'dark',
         deviceId: 'device-xyz',
         dismissedSignInBanner: false,
+        analyticsEnabled: true,
       })
       const row = await db.metadata.get('settings')
       expect(row?.currency).toBe('BDT')
@@ -113,8 +114,8 @@ describe('AppDb', () => {
     })
 
     it('overwrites existing settings on put', async () => {
-      await db.metadata.put({ key: 'settings', currency: 'USD', locale: 'en-US', theme: 'system', deviceId: 'd1', dismissedSignInBanner: false })
-      await db.metadata.put({ key: 'settings', currency: 'EUR', locale: 'de-DE', theme: 'light', deviceId: 'd1', dismissedSignInBanner: true })
+      await db.metadata.put({ key: 'settings', currency: 'USD', locale: 'en-US', theme: 'system', deviceId: 'd1', dismissedSignInBanner: false, analyticsEnabled: true })
+      await db.metadata.put({ key: 'settings', currency: 'EUR', locale: 'de-DE', theme: 'light', deviceId: 'd1', dismissedSignInBanner: true, analyticsEnabled: false })
       const row = await db.metadata.get('settings')
       expect(row?.currency).toBe('EUR')
     })

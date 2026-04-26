@@ -47,6 +47,7 @@ interface EventParams {
 
 class AnalyticsService {
   private initialized = false
+  private enabled = true
 
   initialize(): void {
     if (this.initialized) return
@@ -54,18 +55,25 @@ class AnalyticsService {
     this.initialized = true
   }
 
-  trackEvent(eventType: AnalyticsEventType, params?: EventParams): void {
-    if (!this.initialized) return
-    trackEvent(eventType, params as Record<string, string | number | boolean>)
+  setEnabled(flag: boolean): void {
+    this.enabled = flag
   }
 
-
+  trackEvent(eventType: AnalyticsEventType, params?: EventParams): void {
+    if (!this.initialized || !this.enabled) return
+    trackEvent(eventType, params as Record<string, string | number | boolean>)
+  }
 }
 
 const service = new AnalyticsService()
 
 // Initialize on module load
 service.initialize()
+
+/** Call after loading user settings to honour the opt-out preference. */
+export function setAnalyticsEnabled(flag: boolean): void {
+  service.setEnabled(flag)
+}
 
 // ── Convenience shorthands ───────────────────────────────────────────
 
